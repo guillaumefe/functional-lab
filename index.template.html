@@ -1,137 +1,165 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Index des Vulnérabilités OWASP Top 10</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Applications Overview</title>
+    <link id="favicon" rel="icon" href="favicon.ico" type="image/x-icon">
     <style>
         body {
-            padding-top: 50px;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
         }
-        .vulnerability-card {
+        h1 {
+            text-align: center;
             margin-bottom: 20px;
         }
-        .header {
-            margin-bottom: 40px;
-            text-align: center;
+        .category-container {
+            margin-bottom: 30px;
         }
-        .header h1 {
-            font-size: 3em;
+        .category-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .app-container {
+            background: #fff;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            position: relative;
+            border-radius: 5px;
+        }
+        .app-container.done {
+            background-color: rgba(0, 255, 0, 0.1);
+        }
+        .done-label {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #4caf50;
+            color: #fff;
+            padding: 5px;
+            border-radius: 3px;
             font-weight: bold;
         }
-        .header p {
-            font-size: 1.2em;
-            color: #777;
+        .app-container a {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #28a745;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
         }
-        .card.completed {
-            background-color: #e0e0e0;
+        .app-container a:hover {
+            background-color: #218838;
         }
-        .card.completed .card-title {
-            text-decoration: line-through;
+        .app-container button {
+            margin-top: 10px;
+            background-color: #007bff;
+            padding: 4px 10px;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .app-container button.done {
+            background-color: #4caf50;
+        }
+        .app-container button:not(.done):hover {
+            background-color: #0056b3;
+        }
+        .app-container button.done:hover {
+            background-color: #388e3c;
         }
     </style>
-</head>
-<body>
-
-    <div class="container header">
-        <h1>OWASP Top 10 Vulnérabilités</h1>
-        <p>Explorez les exemples pratiques des principales vulnérabilités de sécurité web</p>
-    </div>
-
-    <div class="container" id="vulnerability-container">
-        <!-- Les vulnérabilités seront insérées ici dynamiquement -->
-    </div>
-
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            {{VULNERABILITIES_DATA}}
+        const pageTitle = "My Custom Applications Overview";
+        const sectionTitle = "Custom Application Challenges";
 
-            let completedVulns = JSON.parse(localStorage.getItem('completedVulns')) || [];
+        const vulnerabilities = {{VULNERABILITIES_DATA}};
 
-            let categories = {};
-            vulnerabilities.forEach(vuln => {
-                if (!categories[vuln.category]) {
-                    categories[vuln.category] = [];
+        window.onload = function() {
+            document.getElementById('page-title').textContent = pageTitle;
+            document.querySelector('h1').textContent = sectionTitle;
+
+            const container = document.getElementById('app-list');
+
+            // Regrouper les applications par catégorie
+            const categories = {};
+            vulnerabilities.forEach(app => {
+                if (!categories[app.category]) {
+                    categories[app.category] = [];
                 }
-                categories[vuln.category].push(vuln);
+                categories[app.category].push(app);
             });
 
-            const container = document.getElementById('vulnerability-container');
+            // Afficher les applications par catégorie
+            Object.keys(categories).forEach(category => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category-container';
 
-            for (let category in categories) {
-                const categoryHeader = document.createElement('h2');
-                categoryHeader.textContent = category.replace(/_/g, ' ');
-                container.appendChild(categoryHeader);
+                const categoryTitle = document.createElement('div');
+                categoryTitle.className = 'category-title';
+                categoryTitle.textContent = category;
 
-                const row = document.createElement('div');
-                row.className = 'row';
+                categoryDiv.appendChild(categoryTitle);
 
-                categories[category].forEach(vuln => {
-                    const col = document.createElement('div');
-                    col.className = 'col-md-4 vulnerability-card';
+                categories[category].forEach(app => {
+                    const appDiv = document.createElement('div');
+                    appDiv.className = 'app-container';
+                    appDiv.id = `app-${app.id}`;
 
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    card.setAttribute('data-id', vuln.id);
+                    appDiv.innerHTML = `
+                        <h2>${app.title}</h2>
+                        <p>${app.description}</p>
+                        <a href="http://localhost:${app.port}" id="demo-link-${app.id}">Demo</a>
+                        <button onclick="toggleDone('${app.id}')">Mark</button>
+                    `;
 
-                    if (completedVulns.includes(vuln.id)) {
-                        card.classList.add('completed');
-                    }
-
-                    const cardBody = document.createElement('div');
-                    cardBody.className = 'card-body';
-
-                    const title = document.createElement('h5');
-                    title.className = 'card-title';
-                    title.textContent = vuln.title;
-
-                    const description = document.createElement('p');
-                    description.className = 'card-text';
-                    description.textContent = vuln.description;
-
-                    const link = document.createElement('a');
-                    link.href = `http://localhost:${vuln.port}`;
-                    link.className = 'btn btn-primary';
-                    link.textContent = 'Accéder à la démonstration';
-
-                    const button = document.createElement('button');
-                    button.className = 'btn btn-secondary mark-completed';
-                    button.textContent = completedVulns.includes(vuln.id) ? 'Marqué comme fait' : 'Marquer comme fait';
-                    button.style.marginLeft = '10px';
-
-                    button.addEventListener('click', function() {
-                        toggleCompleted(vuln.id, card, button);
-                    });
-
-                    cardBody.appendChild(title);
-                    cardBody.appendChild(description);
-                    cardBody.appendChild(link);
-                    cardBody.appendChild(button);
-                    card.appendChild(cardBody);
-                    col.appendChild(card);
-                    row.appendChild(col);
+                    categoryDiv.appendChild(appDiv);
                 });
 
-                container.appendChild(row);
-            }
+                container.appendChild(categoryDiv);
+            });
+        };
 
-            function toggleCompleted(id, cardElement, buttonElement) {
-                let index = completedVulns.indexOf(id);
-                if (index === -1) {
-                    completedVulns.push(id);
-                    cardElement.classList.add('completed');
-                    buttonElement.textContent = 'Marqué comme fait';
-                } else {
-                    completedVulns.splice(index, 1);
-                    cardElement.classList.remove('completed');
-                    buttonElement.textContent = 'Marquer comme fait';
-                }
-                localStorage.setItem('completedVulns', JSON.stringify(completedVulns));
+        function toggleDone(appId) {
+            const appContainer = document.getElementById(`app-${appId}`);
+            const button = appContainer.querySelector('button');
+            const link = appContainer.querySelector(`#demo-link-${appId}`);
+            const isDone = appContainer.classList.contains('done');
+
+            if (isDone) {
+                button.textContent = "Mark";
+                button.classList.remove('done');
+                appContainer.classList.remove('done');
+                const doneLabel = appContainer.querySelector('.done-label');
+                if (doneLabel) doneLabel.remove();
+                link.style.display = 'inline-block';
+            } else {
+                button.textContent = "Done";
+                button.classList.add('done');
+                appContainer.classList.add('done');
+                const doneLabel = document.createElement('div');
+                doneLabel.className = 'done-label';
+                doneLabel.textContent = 'Completed';
+                appContainer.appendChild(doneLabel);
+                link.style.display = 'none';
             }
-        });
+        }
     </script>
+</head>
+<body>
+    <h1></h1>
+    <div id="app-list"></div>
 </body>
 </html>
