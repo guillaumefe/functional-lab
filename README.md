@@ -1,104 +1,88 @@
-\`\`\`
-## **Setup Guide for OWASP Top 10 Vulnerability Demonstrations**
+## **Guide d'Installation pour les Démonstrations des Vulnérabilités OWASP Top 10**
 
-This Markdown document provides instructions on how to set up a server hosting demonstrations for the OWASP Top 10 2021 vulnerabilities using Docker. The setup is automated through scripts to make it easy for users with minimal effort.
+Ce document Markdown fournit des instructions sur la configuration d'un serveur hébergeant des démonstrations pour les vulnérabilités OWASP Top 10 2021 en utilisant Docker. La configuration est automatisée via des scripts pour faciliter la mise en place par les utilisateurs avec un effort minimal.
 
-### **Table of Contents**
+### **Table des Matières**
 
-- [Prerequisites](#prerequisites)
-- [Project Structure](#project-structure)
-- [Scripts and Files](#scripts-and-files)
-- [Installation Steps](#installation-steps)
-- [Using the Server](#using-the-server)
-- [Customization and Extensions](#customization-and-extensions)
-- [Troubleshooting](#troubleshooting)
+- [Prérequis](#prérequis)
+- [Structure du Projet](#structure-du-projet)
+- [Scripts et Fichiers](#scripts-et-fichiers)
+- [Étapes d'Installation](#étapes-dinstallation)
+- [Utilisation du Serveur](#utilisation-du-serveur)
+- [Personnalisation et Extensions](#personnalisation-et-extensions)
+- [Dépannage](#dépannage)
 - [Conclusion](#conclusion)
 
-### **Prerequisites**
+### **Prérequis**
 
-Before you begin, ensure your system has the following installed:
-- Docker (19.03 or later)
-- Docker Compose (1.25 or later)
+Avant de commencer, assurez-vous que votre système dispose des éléments suivants installés :
+- Docker (19.03 ou ultérieur)
+- Docker Compose (1.25 ou ultérieur)
 - Git
-- Internet access for downloading necessary Docker images and dependencies
+- Accès Internet pour télécharger les images Docker nécessaires et les dépendances
 
-### **Project Structure**
+### **Structure du Projet**
 
-\`\`\`
-owasp-top10-vulnerabilities/
-│
-├── A01_Broken_Access_Control/
-│   ├── app1/
-│   │   ├── Dockerfile
-│   │   ├── app-info.json
-│   │   └── (autres fichiers spécifiques à l'application)
-│   └── app2/
-│       ├── Dockerfile
-│       ├── app-info.json
-│       └── (autres fichiers spécifiques à l'application)
-│
-├── A02_Cryptographic_Failures/
-│   ├── app1/
-│   │   ├── Dockerfile
-│   │   ├── app-info.json
-│   │   └── (autres fichiers spécifiques à l'application)
-│   └── app2/
-│       ├── Dockerfile
-│       ├── app-info.json
-│       └── (autres fichiers spécifiques à l'application)
-│
-├── (autres catégories des vulnérabilités OWASP)
-│
-├── generate-compose.sh
-├── setup.sh
-├── docker-compose.template.yml
-├── index.template.html
-└── README.md
-\`\`\`
+- **owasp-top10-vulnerabilities/** : Racine du projet
+  - **A01_Broken_Access_Control/** : Catégorie pour la vulnérabilité de contrôle d'accès cassé
+    - **app1/** : Première application démontrant cette vulnérabilité
+      - `Dockerfile` : Instructions pour Docker
+      - `app-info.json` : Informations sur l'application
+      - *(autres fichiers spécifiques à l'application)*
+    - **app2/** : Deuxième application démontrant cette vulnérabilité
+      - `Dockerfile`
+      - `app-info.json`
+      - *(autres fichiers spécifiques à l'application)*
+  - **A02_Cryptographic_Failures/** : Catégorie pour les échecs cryptographiques
+    - **app1/** : Application démontrant cette vulnérabilité
+      - `Dockerfile`
+      - `app-info.json`
+      - *(autres fichiers spécifiques à l'application)*
+  - *(autres catégories des vulnérabilités OWASP)*
+  - `generate-compose.sh` : Script pour générer docker-compose.yml et index.html
+  - `setup.sh` : Script pour configurer et démarrer le projet
+  - `docker-compose.template.yml` : Modèle pour Docker Compose
+  - `index.template.html` : Modèle pour la page d'index
+  - `README.md` : Document expliquant comment configurer et utiliser le projet
 
-### **Scripts and Files**
+### **Scripts et Fichiers**
 
-- **setup.sh** - Main script to automate the installation and deployment.
-- **generate-compose.sh** - Generates \`docker-compose.yml\` and \`index.html\`.
-- **docker-compose.template.yml** - Template for Docker Compose configuration.
-- **index.template.html** - Template for the index page listing vulnerabilities.
+- **setup.sh** : Script principal pour automatiser l'installation et le déploiement.
+- **generate-compose.sh** : Génère `docker-compose.yml` et `index.html`.
+- **docker-compose.template.yml** : Modèle pour la configuration Docker Compose.
+- **index.template.html** : Modèle pour la page d'index listant les vulnérabilités.
 
-### **Installation Steps**
+### **Étapes d'Installation**
 
-1. **Clone the Repository**
-   \`\`\`bash
+1. **Cloner le Dépôt**
+   ```bash
    git clone https://your-repository-url/owasp-top10-vulnerabilities.git
    cd owasp-top10-vulnerabilities
-   \`\`\`
+   ```
 
-2. **Make the Script Executable**
-   \`\`\`bash
+2. **Rendre le Script Exécutable**
+   ```bash
    chmod +x setup.sh
-   \`\`\`
+   ```
 
-3. **Run the Installation Script**
-   \`\`\`bash
+3. **Exécuter le Script d'Installation**
+   ```bash
    ./setup.sh
-   \`\`\`
+   ```
 
-This script will check for Docker and Docker Compose, install them if they are missing, generate necessary files, build Docker images, and start the containers.
+Ce script vérifiera la présence de Docker et Docker Compose, les installera s'ils sont manquants, générera les fichiers nécessaires, construira les images Docker et démarrera les conteneurs.
 
-### **Using the Server**
+### **Utilisation du Serveur**
 
-- **Access the Index Page**: Navigate to \`http://localhost:8080/index.html\` to view the list of vulnerabilities.
-- **Interact with Demonstrations**: Click on "Access Demonstration" for specific vulnerabilities.
+- **Accéder à la Page d'Index** : Naviguez à `http://localhost:8080/index.html` pour voir la liste des vulnérabilités.
+- **Interagir avec les Démonstrations** : Cliquez sur "Accéder à la démonstration" pour des vulnérabilités spécifiques.
 
-### **Customization and Extensions**
+### **Personnalisation et Extensions**
 
-- **Adding New Applications**: Place them in the appropriate category directory with necessary Dockerfiles and \`app-info.json\`.
-- **Modifying Templates**: Change \`index.template.html\` or \`docker-compose.template.yml\` as needed.
+- **Ajout de Nouvelles Applications** : Placez-les dans le répertoire de catégorie approprié avec les Dockerfiles et `app-info.json` nécessaires.
+- **Modification des Modèles** : Changez `index.template.html` ou `docker-compose.template.yml` selon les besoins.
 
-### **Troubleshooting**
+### **Dépannage**
 
-- **Common Issues**: Port conflicts, Docker permissions, network issues.
-- **Logs and Status**: Use \`docker-compose logs\` and \`docker-compose ps\` to check the status and logs of the containers.
-
-### **Conclusion**
-
-This setup provides a hands-on experience with web vulnerabilities as categorized by OWASP Top 10 2021, facilitating learning and demonstration in a controlled environment. Customize and expand this project to enhance learning or to add new demonstrations.
-\`\`\`
+- **Problèmes Courants** : Conflits de ports, permissions Docker, problèmes de réseau.
+- **Logs et Statut** : Utilisez `docker-compose logs` et `docker-compose ps` pour vérifier le statut et les logs des conteneurs.
