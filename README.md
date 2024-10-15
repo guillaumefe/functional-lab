@@ -87,7 +87,7 @@ Chaque `app-info.json` doit inclure les champs suivants :
    - Vous verrez un aperçu de toutes vos applications, regroupées par catégories. Chaque application aura un bouton pour y accéder et un bouton "Mark" pour suivre votre progression.
 
 5. **Interagir avec l'Interface** :
-   - Cliquez sur le bouton "Go to [Nom de l'Application]" pour ouvrir l'application dans un nouvel onglet.
+   - Cliquez sur le bouton "Demo" pour ouvrir l'application dans un nouvel onglet.
    - Utilisez le bouton "Mark" pour marquer l'application comme "Done" une fois que vous avez complété le challenge. Vous pouvez cliquer à nouveau pour dé-marquer.
 
 ## Exemple de Résultat
