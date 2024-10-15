@@ -1,88 +1,139 @@
-## **Guide d'Installation pour les Démonstrations des Vulnérabilités OWASP Top 10**
+# Déploiement d'Applications avec Docker Compose
 
-Ce document Markdown fournit des instructions sur la configuration d'un serveur hébergeant des démonstrations pour les vulnérabilités OWASP Top 10 2021 en utilisant Docker. La configuration est automatisée via des scripts pour faciliter la mise en place par les utilisateurs avec un effort minimal.
+Ce projet vous permet de détecter, configurer et déployer automatiquement plusieurs applications basées sur JavaScript en utilisant Docker et Docker Compose. Chaque application est placée dans un répertoire dédié et définie par son propre `app-info.json` et `Dockerfile`. Le script de configuration génère un fichier `docker-compose.yml` et un `index.html` qui affiche toutes les applications, organisées par catégories.
 
-### **Table des Matières**
+## Prérequis
 
-- [Prérequis](#prérequis)
-- [Structure du Projet](#structure-du-projet)
-- [Scripts et Fichiers](#scripts-et-fichiers)
-- [Étapes d'Installation](#étapes-dinstallation)
-- [Utilisation du Serveur](#utilisation-du-serveur)
-- [Personnalisation et Extensions](#personnalisation-et-extensions)
-- [Dépannage](#dépannage)
-- [Conclusion](#conclusion)
+- **Docker** : Assurez-vous que Docker est installé sur votre système. Sinon, téléchargez et installez-le depuis [le site officiel de Docker](https://docs.docker.com/get-docker/).
+- **jq** : Ce script nécessite `jq` pour traiter les fichiers JSON. Vous pouvez l'installer avec Homebrew sur macOS :
+  ```bash
+  brew install jq
+  ```
+- **Connaissances de Base en Docker et Docker Compose** : Une compréhension de la création de Dockerfile et de Docker Compose est recommandée.
 
-### **Prérequis**
+## Structure du Projet
 
-Avant de commencer, assurez-vous que votre système dispose des éléments suivants installés :
-- Docker (19.03 ou ultérieur)
-- Docker Compose (1.25 ou ultérieur)
-- Git
-- Accès Internet pour télécharger les images Docker nécessaires et les dépendances
+La structure attendue pour vos applications est la suivante :
 
-### **Structure du Projet**
+```plaintext
+.
+├── docker-compose.template.yml
+├── index.template.html
+├── app1/
+│   ├── Dockerfile
+│   ├── app-info.json
+│   └── src/
+│       └── index.js
+├── app2/
+│   ├── Dockerfile
+│   ├── app-info.json
+│   └── src/
+│       └── index.js
+├── install.sh
+└── README.md
+```
 
-- **owasp-top10-vulnerabilities/** : Racine du projet
-  - **A01_Broken_Access_Control/** : Catégorie pour la vulnérabilité de contrôle d'accès cassé
-    - **app1/** : Première application démontrant cette vulnérabilité
-      - `Dockerfile` : Instructions pour Docker
-      - `app-info.json` : Informations sur l'application
-      - *(autres fichiers spécifiques à l'application)*
-    - **app2/** : Deuxième application démontrant cette vulnérabilité
-      - `Dockerfile`
-      - `app-info.json`
-      - *(autres fichiers spécifiques à l'application)*
-  - **A02_Cryptographic_Failures/** : Catégorie pour les échecs cryptographiques
-    - **app1/** : Application démontrant cette vulnérabilité
-      - `Dockerfile`
-      - `app-info.json`
-      - *(autres fichiers spécifiques à l'application)*
-  - *(autres catégories des vulnérabilités OWASP)*
-  - `generate-compose.sh` : Script pour générer docker-compose.yml et index.html
-  - `setup.sh` : Script pour configurer et démarrer le projet
-  - `docker-compose.template.yml` : Modèle pour Docker Compose
-  - `index.template.html` : Modèle pour la page d'index
-  - `README.md` : Document expliquant comment configurer et utiliser le projet
+- **docker-compose.template.yml** : Le template pour générer `docker-compose.yml`.
+- **index.template.html** : Le template pour générer l'interface web qui affiche toutes les applications.
+- **appX/** : Chaque application doit être dans son propre répertoire et contenir :
+  - `Dockerfile` : Définit comment construire et exécuter l'application.
+  - `app-info.json` : Contient les métadonnées de l'application (titre, description et catégorie).
 
-### **Scripts et Fichiers**
+## Format de `app-info.json`
 
-- **setup.sh** : Script principal pour automatiser l'installation et le déploiement.
-- **generate-compose.sh** : Génère `docker-compose.yml` et `index.html`.
-- **docker-compose.template.yml** : Modèle pour la configuration Docker Compose.
-- **index.template.html** : Modèle pour la page d'index listant les vulnérabilités.
+Chaque `app-info.json` doit inclure les champs suivants :
 
-### **Étapes d'Installation**
+```json
+{
+  "title": "Mon Application",
+  "description": "Une brève description de ce que fait cette application.",
+  "category": "Sécurité"
+}
+```
 
-1. **Cloner le Dépôt**
-   ```bash
-   git clone https://your-repository-url/owasp-top10-vulnerabilities.git
-   cd owasp-top10-vulnerabilities
-   ```
+- **title** : Le nom de l'application.
+- **description** : Une brève description de la fonctionnalité de l'application.
+- **category** : La catégorie sous laquelle l'application doit être regroupée dans l'interface.
 
-2. **Rendre le Script Exécutable**
-   ```bash
-   chmod +x setup.sh
-   ```
+## Comment Utiliser
 
-3. **Exécuter le Script d'Installation**
-   ```bash
-   ./setup.sh
-   ```
+1. **Cloner le dépôt** et naviguer dans le répertoire du projet.
 
-Ce script vérifiera la présence de Docker et Docker Compose, les installera s'ils sont manquants, générera les fichiers nécessaires, construira les images Docker et démarrera les conteneurs.
+2. **Ajouter Vos Applications** :
+   - Créez un nouveau répertoire pour chaque application que vous souhaitez ajouter (par exemple, `app1`, `app2`).
+   - Chaque répertoire doit contenir un `Dockerfile` et un `app-info.json` valides comme décrit ci-dessus.
 
-### **Utilisation du Serveur**
+3. **Exécuter le Script d'Installation** :
+   - Assurez-vous que le script `install.sh` est exécutable :
+     ```bash
+     chmod +x install.sh
+     ```
+   - Exécutez le script :
+     ```bash
+     ./install.sh
+     ```
+   - Ce script va :
+     - Détecter toutes les applications avec un `app-info.json` et `Dockerfile` valides.
+     - Générer `docker-compose.yml` basé sur les applications détectées.
+     - Générer un fichier `index.html` qui affiche toutes les applications, organisées par catégories.
+     - Démarrer les applications en utilisant Docker Compose.
+     - Servir le `index.html` sur un serveur web local.
 
-- **Accéder à la Page d'Index** : Naviguez à `http://localhost:8080/index.html` pour voir la liste des vulnérabilités.
-- **Interagir avec les Démonstrations** : Cliquez sur "Accéder à la démonstration" pour des vulnérabilités spécifiques.
+4. **Accéder à l'Interface Web** :
+   - Ouvrez votre navigateur et naviguez vers :
+     ```plaintext
+     http://localhost:8000/index.html
+     ```
+   - Vous verrez un aperçu de toutes vos applications, regroupées par catégories. Chaque application aura un bouton pour y accéder et un bouton "Mark" pour suivre votre progression.
 
-### **Personnalisation et Extensions**
+5. **Interagir avec l'Interface** :
+   - Cliquez sur le bouton "Go to [Nom de l'Application]" pour ouvrir l'application dans un nouvel onglet.
+   - Utilisez le bouton "Mark" pour marquer l'application comme "Done" une fois que vous avez complété le challenge. Vous pouvez cliquer à nouveau pour dé-marquer.
 
-- **Ajout de Nouvelles Applications** : Placez-les dans le répertoire de catégorie approprié avec les Dockerfiles et `app-info.json` nécessaires.
-- **Modification des Modèles** : Changez `index.template.html` ou `docker-compose.template.yml` selon les besoins.
+## Exemple de Résultat
 
-### **Dépannage**
+Si vous avez deux applications (`app1` et `app2`) avec les `app-info.json` suivants :
 
-- **Problèmes Courants** : Conflits de ports, permissions Docker, problèmes de réseau.
-- **Logs et Statut** : Utilisez `docker-compose logs` et `docker-compose ps` pour vérifier le statut et les logs des conteneurs.
+### app1/app-info.json
+
+```json
+{
+  "title": "Challenge Injection SQL",
+  "description": "Apprenez les vulnérabilités d'injection SQL.",
+  "category": "Sécurité"
+}
+```
+
+### app2/app-info.json
+
+```json
+{
+  "title": "Challenge Cross-Site Scripting (XSS)",
+  "description": "Comprenez les attaques XSS et comment les prévenir.",
+  "category": "Sécurité"
+}
+```
+
+Le fichier généré `index.html` affichera les deux applications sous la catégorie "Sécurité", chacune avec des boutons pour y accéder et marquer les challenges.
+
+## Personnalisation
+
+- **Changer les Titres** :
+  - Modifiez `pageTitle` et `sectionTitle` dans `index.template.html` pour changer le titre affiché de la page et l'en-tête de la section.
+- **Ajouter de Nouvelles Applications** :
+  - Il suffit de créer un nouveau répertoire pour l'application, d'ajouter un `Dockerfile` et `app-info.json` valides, puis de relancer `./install.sh`.
+
+## Dépannage
+
+- **Erreur : `docker-compose.yml` non généré** :
+  - Assurez-vous que chaque répertoire d'application contient un `Dockerfile` non vide et un `app-info.json` correctement formaté.
+- **Conflits de Ports** :
+  - Le script assigne automatiquement les ports à partir de `3000`. Si un port est déjà utilisé, il trouvera le port suivant disponible.
+- **Accéder à l'Interface** :
+  - Assurez-vous que Docker et le serveur local sont en cours d'exécution. Relancez `./install.sh` si nécessaire.
+
+## Licence
+
+Ce projet est sous licence `GNU General Public License v3.0` - voir le fichier [LICENSE](LICENSE) pour plus de détails.
+
+---
