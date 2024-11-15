@@ -1,0 +1,13 @@
+{
+  "title": "A1 - jwt-vulnerability-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une vulnérabilité liée aux JWT mal sécurisés",
+  "author": "Votre Nom",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/votre-utilisateur/jwt-vulnerability-demo.git"
+  },
+  "keywords": ["jwt", "sécurité", "vulnérabilité", "simulation"]
+}
+
