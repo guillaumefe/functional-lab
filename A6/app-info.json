@@ -1,0 +1,12 @@
+{
+  "title": "A6-insecure-design-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une vulnérabilité liée à l'absence de validation côté serveur pour des fins éducatives",
+  "author": "Onepoint",
+  "license": "MIT",
+  "keywords": ["validation", "sécurité", "vulnérabilité", "serveur", "insecure design", "OWASP"],
+  "scripts": {
+    "start": "node server.js"
+  }
+}
+

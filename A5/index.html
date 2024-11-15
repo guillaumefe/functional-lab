@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Contournement de la protection des répertoires dans NGINX</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+    h2 { margin-top: 40px; }
+    #client-name { font-weight: bold; }
+    #result { margin-top: 20px; font-weight: bold; }
+    #info { margin-top: 40px; padding: 20px; border: 1px solid #ccc; background-color: #f9f9f9; }
+    .exp-section pre { background-color: #f0f0f0; padding: 10px; overflow-x: auto; }
+    button.toggle { margin-top: 20px; }
+    .exp-section { display: none; }
+    .highlight { background-color: #ffffcc; }
+    ul { list-style-type: disc; margin-left: 20px; }
+    ol { list-style-type: decimal; margin-left: 20px; }
+    code { background-color: #f4f4f4; padding: 2px 4px; }
+  </style>
+</head>
+<body>
+  <h1>Contournement de la protection des répertoires dans NGINX</h1>
+  <p>Bienvenue, <span id="client-name">Onepoint</span>!</p>
+
+  <h2>Objectif de l'attaque</h2>
+  <p>Comprendre les risques liés à une mauvaise configuration du serveur NGINX qui peut exposer des répertoires internes sensibles et comment cela peut être exploité par un attaquant.</p>
+
+  <form id="access-form">
+    <label for="directory-input">Accéder à un répertoire :</label><br>
+    <input type="text" id="directory-input" name="directory-input" size="50" placeholder="/etc/"><br><br>
+    <button type="submit">Accéder au répertoire</button>
+  </form>
+
+  <div id="result"></div>
+
+  <button id="toggleInfo" class="toggle">Afficher les explications</button>
+
+  <div id="info" class="exp-section">
+    <h2>À propos de cette vulnérabilité</h2>
+    <p>Cette page illustre les risques associés à une <strong>mauvaise configuration du serveur NGINX</strong> qui permet un accès non autorisé à des répertoires internes sensibles. Cela peut survenir lorsque les directives de configuration, telles que <code>location</code>, ne sont pas correctement implémentées, exposant ainsi des répertoires critiques comme <code>/etc/</code>, <code>/logs/</code>, ou <code>/backup/</code>.</p>
+
+    <h3>Comment l'application fonctionne</h3>
+    <p>L'application simule un site web hébergé sur un serveur NGINX mal configuré. Lorsque l'utilisateur entre le chemin d'un répertoire dans le formulaire, l'application affiche le contenu de ce répertoire. Dans une configuration sécurisée, l'accès à des répertoires internes sensibles devrait être restreint. Cependant, en raison de la mauvaise configuration, ces répertoires sont accessibles publiquement.</p>
+
+    <h3>Pourquoi il y a une vulnérabilité</h3>
+    <p>La vulnérabilité se produit lorsque les directives NGINX ne sont pas correctement configurées pour restreindre l'accès aux répertoires internes. Par exemple, l'utilisation incorrecte de la directive <code>alias</code> ou l'absence de directives de sécurité peut conduire à l'exposition de fichiers sensibles. De plus, des erreurs dans la syntaxe de configuration peuvent créer des failles exploitées par des attaquants.</p>
+
+    <h3>Impact potentiel</h3>
+    <p>Les conséquences de cette vulnérabilité peuvent être graves :</p>
+    <ul>
+      <li><strong>Accès à des fichiers critiques</strong> : Les attaquants peuvent lire des fichiers de configuration contenant des informations sensibles comme des mots de passe ou des clés API.</li>
+      <li><strong>Exfiltration de données</strong> : Des données sensibles, y compris des sauvegardes de bases de données, peuvent être téléchargées et exploitées.</li>
+      <li><strong>Compromission du système</strong> : Avec suffisamment d'informations, un attaquant peut obtenir un accès complet au système, exécuter du code arbitraire ou modifier des données.</li>
+      <li><strong>Violation de la confidentialité</strong> : Les données des utilisateurs peuvent être exposées, entraînant des pertes financières et de réputation.</li>
+    </ul>
+
+    <h3>Scénario d'exploitation détaillé</h3>
+    <p>Voici un scénario détaillé illustrant comment un attaquant pourrait exploiter cette vulnérabilité :</p>
+
+    <h4>Étape 1 : Reconnaissance</h4>
+    <p>L'attaquant utilise des outils comme <strong>Nikto</strong> ou <strong>DirBuster</strong> pour scanner le serveur web et découvrir les répertoires accessibles publiquement. Il identifie que des répertoires tels que <code>/backup/</code> ou <code>/logs/</code> sont exposés.</p>
+
+    <h4>Étape 2 : Exploration initiale</h4>
+    <p>L'attaquant accède à ces répertoires via un navigateur web ou en utilisant <code>curl</code>. Par exemple :</p>
+    <pre><code>curl http://exemple.com/backup/</code></pre>
+    <p>Il découvre qu'il peut télécharger des fichiers de sauvegarde de la base de données :</p>
+    <pre><code>curl http://exemple.com/backup/db-backup.sql -o db-backup.sql</code></pre>
+
+    <h4>Étape 3 : Analyse des fichiers téléchargés</h4>
+    <p>En examinant le fichier <code>db-backup.sql</code>, l'attaquant trouve des informations sensibles telles que :</p>
+    <ul>
+      <li>Identifiants de la base de données.</li>
+      <li>Informations sur les utilisateurs (noms, emails, mots de passe hachés).</li>
+      <li>Clés API et secrets.</li>
+    </ul>
+    <p>Il peut également trouver des fichiers de configuration contenant des mots de passe en clair ou d'autres secrets.</p>
+
+    <h4>Étape 4 : Escalade des privilèges</h4>
+    <p>Avec les informations obtenues, l'attaquant tente de se connecter directement à la base de données MySQL :</p>
+    <pre><code>mysql -u root -p -h exemple.com</code></pre>
+    <p>En utilisant les identifiants trouvés, il obtient un accès complet à la base de données.</p>
+
+    <h4>Étape 5 : Exploitation complète</h4>
+    <p>L'attaquant exécute des requêtes SQL pour extraire des données sensibles :</p>
+    <pre><code>SELECT * FROM users;</code></pre>
+    <p>Il peut également modifier des données, créer de nouveaux utilisateurs avec des privilèges administratifs, ou injecter du code malveillant.</p>
+
+    <h3>Comment corriger la vulnérabilité</h3>
+    <p>Pour remédier à cette vulnérabilité, il est essentiel de :</p>
+    <ul>
+      <li><strong>Vérifier la configuration NGINX</strong> : S'assurer que les directives <code>location</code>, <code>alias</code>, et <code>root</code> sont correctement configurées.</li>
+      <li><strong>Restreindre l'accès aux répertoires sensibles</strong> : Utiliser des contrôles d'accès appropriés pour empêcher l'accès non autorisé.</li>
+      <li><strong>Désactiver l'indexation des répertoires</strong> : S'assurer que la directive <code>autoindex</code> est désactivée ou correctement configurée.</li>
+      <li><strong>Mettre à jour NGINX</strong> : Installer les dernières mises à jour et correctifs de sécurité, en particulier pour les vulnérabilités connues comme le <a href="https://nvd.nist.gov/vuln/detail/CVE-2021-23017" target="_blank">CVE-2021-23017</a>.</li>
+      <li><strong>Tester la configuration</strong> : Utiliser des outils d'audit pour vérifier que la configuration ne présente pas de failles.</li>
+    </ul>
+
+    <h3>Exemple de configuration sécurisée</h3>
+    <p>Voici un exemple de configuration NGINX sécurisée :</p>
+    <pre><code>
+server {
+    listen 80;
+    server_name exemple.com;
+
+    root /var/www/html;
+    index index.php index.html index.htm;
+
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    # Bloquer l'accès aux répertoires sensibles
+    location ~* /(backup|logs|etc|config)/ {
+        deny all;
+        return 403;
+    }
+
+    # Traiter les fichiers PHP
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+    }
+}
+    </code></pre>
+    <p>Dans cette configuration :</p>
+    <ul>
+      <li>Les répertoires sensibles sont explicitement bloqués.</li>
+      <li>Les fichiers PHP sont correctement gérés avec PHP-FPM.</li>
+      <li>L'accès aux fichiers cachés ou aux dossiers système est restreint.</li>
+    </ul>
+
+    <h3>Ressources supplémentaires</h3>
+    <p>Pour approfondir vos connaissances et renforcer la sécurité de votre serveur NGINX, consultez les ressources suivantes :</p>
+    <ul>
+      <li><a href="https://owasp.org/www-project-top-ten/OWASP_Top_Ten_2021-French/" target="_blank">OWASP Top 10 - A05:2021 Mauvaise configuration de sécurité</a></li>
+      <li><a href="https://nginx.org/fr/docs/" target="_blank">Documentation officielle de NGINX</a></li>
+      <li><a href="https://www.nginx.com/blog/mitigating-the-dangers-of-unrestricted-file-uploads-with-nginx/" target="_blank">Atténuer les dangers des téléchargements de fichiers non restreints avec NGINX</a></li>
+      <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html" target="_blank">OWASP Cheat Sheet - Prévention des attaques SSRF</a></li>
+    </ul>
+
+    <h3>Glossaire</h3>
+    <ul>
+      <li><strong>NGINX</strong> : Un serveur web et proxy inverse open-source, connu pour ses performances et sa faible consommation de ressources.</li>
+      <li><strong>PHP-FPM</strong> : PHP FastCGI Process Manager, utilisé pour accélérer les applications PHP.</li>
+      <li><strong>MySQL</strong> : Un système de gestion de base de données relationnelle open-source.</li>
+      <li><strong>Directive <code>location</code></strong> : Utilisée dans NGINX pour définir des règles de traitement des requêtes pour des URI spécifiques.</li>
+      <li><strong>Vulnérabilité Off-by-one</strong> : Une erreur de programmation où une itération ou une indexation dépasse d'une unité les limites prévues, pouvant entraîner des failles de sécurité.</li>
+      <li><strong>CVSS</strong> : Common Vulnerability Scoring System, un système standardisé pour évaluer la gravité des vulnérabilités.</li>
+      <li><strong>Nikto</strong> : Un scanner de serveur web open-source qui teste pour de multiples vulnérabilités connues.</li>
+      <li><strong>DirBuster</strong> : Un outil de force brute pour découvrir des fichiers et des répertoires cachés sur les serveurs web.</li>
+    </ul>
+
+    <h3>Conclusion</h3>
+    <p>La sécurité de la configuration des serveurs web est essentielle pour protéger les données et les systèmes. Une mauvaise configuration peut entraîner des vulnérabilités critiques, comme l'accès non autorisé à des répertoires internes. Il est important de :</p>
+    <ul>
+      <li>Vérifier régulièrement les configurations.</li>
+      <li>Appliquer les mises à jour et correctifs de sécurité.</li>
+      <li>Utiliser des outils d'audit et de surveillance.</li>
+      <li>Former les administrateurs système aux bonnes pratiques de sécurité.</li>
+    </ul>
+    <p>En prenant ces mesures, vous réduirez considérablement les risques de compromission de votre infrastructure.</p>
+  </div>
+
+  <script>
+    document.getElementById('toggleInfo').addEventListener('click', function() {
+      const info = document.getElementById('info');
+      info.style.display = info.style.display === 'none' ? 'block' : 'none';
+    });
+
+    document.getElementById('access-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const directoryInput = document.getElementById('directory-input').value;
+
+      // Simuler l'accès au répertoire (sans exposer de répertoires réels)
+      const resultDiv = document.getElementById('result');
+      const allowedDirectories = ['/public/'];
+      if (allowedDirectories.includes(directoryInput)) {
+        resultDiv.innerHTML = `<span style="color: green;">Contenu du répertoire ${directoryInput} :</span><br><pre><code>index.html\nstyle.css\nscript.js</code></pre>`;
+      } else {
+        resultDiv.innerHTML = `<span style="color: red;">Accès refusé au répertoire ${directoryInput}.</span>`;
+      }
+    });
+  </script>
+</body>
+</html>
+

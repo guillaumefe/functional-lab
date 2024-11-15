@@ -1,0 +1,15 @@
+{
+  "name": "ci-backdoor-injection-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une vulnérabilité liée à l'injection de backdoors via des pipelines CI compromis",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Onepoint",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+

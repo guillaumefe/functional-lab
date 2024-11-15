@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Falsification de logs via une injection malveillante dans Elasticsearch</title>
+  <!-- Inclusion de Vue.js depuis un CDN sécurisé -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+    h2 { margin-top: 40px; }
+    #client-name { font-weight: bold; }
+    #result { margin-top: 20px; font-weight: bold; word-break: break-all; }
+    #info { margin-top: 40px; padding: 20px; border: 1px solid #ccc; background-color: #f9f9f9; }
+    .exp-section pre { background-color: #f0f0f0; padding: 10px; overflow-x: auto; }
+    button.toggle { margin-top: 20px; }
+    .highlight { background-color: #ffffcc; }
+    ul { list-style-type: disc; margin-left: 20px; }
+    ol { list-style-type: decimal; margin-left: 20px; }
+    code { background-color: #f4f4f4; padding: 2px 4px; }
+    .error { color: red; }
+    .success { color: green; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>Falsification de logs via une injection malveillante dans Elasticsearch</h1>
+    <p>Bienvenue, <span id="client-name">{{ clientName }}</span>!</p>
+
+    <h2>Objectif de la démonstration</h2>
+    <p>Comprendre comment une infrastructure ELK Stack mal configurée peut permettre à un attaquant d'injecter des faux logs ou de masquer ses activités malveillantes.</p>
+
+    <form @submit.prevent="submitForm" id="log-injection-form">
+      <label for="log-entry">Entrée de log injectée :</label><br>
+      <textarea id="log-entry" v-model="logEntry" placeholder="Ex : { 'timestamp': '2024-10-23T10:15:30Z', 'event': 'Authentification réussie', 'user': 'admin' }"></textarea><br><br>
+      <button type="submit">Injecter le faux log</button>
+    </form>
+
+    <div id="result" v-html="resultMessage"></div>
+
+    <button @click="toggleInfo" class="toggle">Afficher les explications</button>
+
+    <div id="info" class="exp-section" v-show="showInfo">
+      <h2>À propos de cette vulnérabilité</h2>
+      <p>Cette page illustre les risques associés à une mauvaise configuration d'une infrastructure de journalisation basée sur ELK Stack. Si les permissions ne sont pas correctement restreintes, un attaquant peut injecter des logs malveillants ou masquer ses activités dans Elasticsearch, compromettant ainsi la surveillance de sécurité.</p>
+
+      <h3>Comment l'attaque fonctionne</h3>
+      <p>Elasticsearch est un moteur de recherche et d'analyse utilisé pour centraliser les journaux. En manipulant les logs, un attaquant peut soit injecter des faux logs simulant des actions légitimes, soit masquer ses propres traces pour éviter la détection. Le manque de contrôles d'accès appropriés ou de validation dans Logstash et Elasticsearch rend ce type d'attaque possible.</p>
+
+      <h3>Étapes détaillées du scénario d'exploitation</h3>
+
+      <h4>Étape 1 : Reconnaissance</h4>
+      <p>L'attaquant identifie une infrastructure ELK Stack mal configurée. Il découvre des accès non sécurisés à Elasticsearch ou à Logstash, qui lui permettent de manipuler les logs sans restriction.</p>
+
+      <h4>Étape 2 : Injection de faux logs</h4>
+      <p>Après avoir obtenu un accès, l'attaquant insère des faux logs dans Elasticsearch via des requêtes HTTP directement vers l'API Elasticsearch. Par exemple :</p>
+      <pre><code>
+      POST /logs/_doc/
+      {
+        "timestamp": "2024-10-23T10:15:30Z",
+        "event": "Authentification réussie",
+        "user": "admin"
+      }
+      </code></pre>
+      <p>Cet événement est injecté pour masquer une activité malveillante en simulant une connexion légitime.</p>
+
+      <h4>Étape 3 : Effacement des traces</h4>
+      <p>Ensuite, l'attaquant peut supprimer ou modifier les logs existants pour masquer ses actions malveillantes. En modifiant ou en supprimant des événements critiques dans Elasticsearch, il efface toute preuve de son intrusion.</p>
+
+      <h4>Étape 4 : Détournement des alertes</h4>
+      <p>Finalement, l'attaquant manipule les logs pour générer de fausses alertes de sécurité ou pour détourner les administrateurs vers de fausses pistes. Par exemple, il peut créer des logs d'erreurs ou des événements anormaux pour perturber les processus de surveillance.</p>
+
+      <h3>Impact de la vulnérabilité</h3>
+      <p>L'impact de cette vulnérabilité est extrêmement grave. Un attaquant peut non seulement masquer ses activités malveillantes, mais aussi induire en erreur les équipes de sécurité en générant de faux événements de sécurité. Cela rend la détection des intrusions difficile, voire impossible.</p>
+
+      <h3>Comment corriger la vulnérabilité</h3>
+      <p>Pour remédier à cette vulnérabilité, il est essentiel de prendre les mesures suivantes :</p>
+
+      <h4>1. Sécuriser les accès à Elasticsearch et Logstash</h4>
+      <p>Appliquer des contrôles d'accès stricts pour garantir que seuls les administrateurs et les systèmes de confiance peuvent interagir avec les logs. Utilisez des rôles et des permissions granulaires pour limiter l'accès.</p>
+
+      <h4>2. Surveiller les anomalies dans les logs</h4>
+      <p>Il est important de surveiller en permanence les journaux pour détecter des anomalies ou des manipulations suspectes. Utiliser des outils d'analyse pour identifier des modèles anormaux dans les journaux.</p>
+
+      <h4>3. Valider les entrées des logs</h4>
+      <p>Mettre en place des contrôles de validation des données envoyées à Logstash pour éviter que des logs malformés ou malveillants ne soient injectés dans Elasticsearch.</p>
+
+      <h3>Glossaire</h3>
+      <ul>
+        <li><strong>ELK Stack :</strong> Un ensemble d'outils open-source, incluant Elasticsearch, Logstash et Kibana, utilisés pour la gestion, la centralisation et l'analyse des journaux.</li>
+        <li><strong>Elasticsearch :</strong> Un moteur de recherche et d'analyse utilisé pour indexer et rechercher des données massives.</li>
+        <li><strong>Logstash :</strong> Un pipeline de traitement de données utilisé pour ingérer, transformer et envoyer des données vers Elasticsearch.</li>
+        <li><strong>Kibana :</strong> Une interface de visualisation de données utilisée pour analyser et interagir avec les données stockées dans Elasticsearch.</li>
+        <li><strong>Faux logs :</strong> Des entrées de journaux fabriquées, insérées dans le système pour tromper ou masquer des activités malveillantes.</li>
+        <li><strong>Injection de logs :</strong> Une attaque où un attaquant insère des journaux falsifiés dans un système de gestion de logs pour tromper les administrateurs.</li>
+      </ul>
+
+      <h3>Ressources supplémentaires</h3>
+      <ul>
+        <li><a href="https://owasp.org/www-project-top-ten/OWASP_Top_Ten_2021-French/A09_2021-Security_Logging_and_Monitoring_Failures" target="_blank">OWASP Top 10 - A09:2021 Failures in Security Logging and Monitoring</a></li>
+        <li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html" target="_blank">Documentation Elasticsearch</a></li>
+        <li><a href="https://www.elastic.co/guide/en/logstash/current/index.html" target="_blank">Documentation Logstash</a></li>
+        <li><a href="https://www.elastic.co/guide/en/kibana/current/index.html" target="_blank">Documentation Kibana</a></li>
+      </ul>
+
+      <h3>Conclusion</h3>
+      <p>Protéger l'infrastructure ELK est essentiel pour garantir la fiabilité des journaux et détecter les intrusions en temps réel. En restreignant les accès, en surveillant les anomalies et en validant les données de journalisation, vous pouvez réduire les risques d'injection de faux logs ou de manipulation des journaux.</p>
+    </div>
+  </div>
+
+  <script>
+    new Vue({
+      el: '#app',
+      data: {
+        clientName: 'Onepoint', // Nom du client
+        logEntry: '',
+        resultMessage: '',
+        showInfo: false
+      },
+      methods: {
+        toggleInfo() {
+          this.showInfo = !this.showInfo;
+        },
+        submitForm() {
+          // Simuler l'injection d'un faux log
+          if (this.logEntry.includes('timestamp') && this.logEntry.includes('event')) {
+            this.resultMessage = '<span class="success">Faux log injecté avec succès dans Elasticsearch.</span>';
+          } else {
+            this.resultMessage = '<span class="error">Format de log incorrect. Vérifiez votre entrée.</span>';
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Absence de validation côté serveur</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+    h2 { margin-top: 40px; }
+    #client-name { font-weight: bold; }
+    #result { margin-top: 20px; font-weight: bold; }
+    #info { margin-top: 40px; padding: 20px; border: 1px solid #ccc; background-color: #f9f9f9; }
+    .exp-section pre { background-color: #f0f0f0; padding: 10px; overflow-x: auto; }
+    button.toggle { margin-top: 20px; }
+    .exp-section { display: none; }
+    .highlight { background-color: #ffffcc; }
+    ul { list-style-type: disc; margin-left: 20px; }
+    ol { list-style-type: decimal; margin-left: 20px; }
+    code { background-color: #f4f4f4; padding: 2px 4px; }
+    .error { color: red; }
+    .success { color: green; }
+  </style>
+</head>
+<body>
+  <h1>Absence de validation côté serveur</h1>
+  <p>Bienvenue, <span id="client-name">Onepoint</span>!</p>
+
+  <h2>Objectif de la démonstration</h2>
+  <p>Comprendre les risques associés à l'absence de validation côté serveur et comment cela peut permettre à un attaquant de contourner les contrôles de l'application.</p>
+
+  <form id="registration-form">
+    <label for="username">Nom d'utilisateur :</label><br>
+    <input type="text" id="username" name="username" placeholder="Ex : JeanDupont"><br><br>
+    <label for="email">Adresse e-mail :</label><br>
+    <input type="email" id="email" name="email" placeholder="Ex : jean.dupont@example.com"><br><br>
+    <button type="submit">S'inscrire</button>
+  </form>
+
+  <div id="result"></div>
+
+  <button id="toggleInfo" class="toggle">Afficher les explications</button>
+
+  <div id="info" class="exp-section">
+    <h2>À propos de cette vulnérabilité</h2>
+    <p>Cette page illustre les risques associés à l'<strong>absence de validation côté serveur</strong>. L'application ne valide les entrées utilisateur que côté client, ce qui permet à un attaquant de contourner les contrôles en désactivant JavaScript ou en manipulant les requêtes HTTP.</p>
+
+    <h3>Comment l'application fonctionne</h3>
+    <p>L'application propose un formulaire d'inscription où les utilisateurs doivent fournir un nom d'utilisateur et une adresse e-mail. La validation des champs est effectuée uniquement côté client à l'aide de JavaScript. Cependant, le serveur ne valide pas les données reçues, ce qui peut entraîner des problèmes si un utilisateur malveillant envoie des données non conformes ou dangereuses.</p>
+
+    <h3>Pourquoi il y a une vulnérabilité</h3>
+    <p>La vulnérabilité survient parce que la validation des entrées utilisateur est effectuée uniquement côté client. Les utilisateurs peuvent désactiver JavaScript ou manipuler les requêtes HTTP pour envoyer des données directement au serveur, contournant ainsi les contrôles de validation. Sans validation côté serveur, l'application est exposée à des risques tels que :</p>
+    <ul>
+      <li>Injection SQL ou NoSQL.</li>
+      <li>Cross-Site Scripting (XSS).</li>
+      <li>Déni de service en envoyant des données volumineuses ou malformées.</li>
+      <li>Violation des règles métier (par exemple, création d'utilisateurs avec des rôles non autorisés).</li>
+    </ul>
+
+    <h3>Impact potentiel</h3>
+    <p>Les conséquences de cette vulnérabilité peuvent inclure :</p>
+    <ul>
+      <li><strong>Compromission de la base de données</strong> : En injectant du code malveillant, un attaquant peut accéder, modifier ou supprimer des données sensibles.</li>
+      <li><strong>Dégradation du service</strong> : L'envoi de données malformées peut provoquer des erreurs ou des plantages du serveur.</li>
+      <li><strong>Atteinte à la réputation</strong> : Les failles de sécurité peuvent nuire à la confiance des clients et des partenaires.</li>
+      <li><strong>Non-conformité réglementaire</strong> : Les violations de données peuvent entraîner des sanctions légales selon les réglementations en vigueur.</li>
+    </ul>
+
+    <h3>Scénario d'exploitation détaillé</h3>
+    <p>Voici comment un attaquant pourrait exploiter cette vulnérabilité :</p>
+
+    <h4>Étape 1 : Désactivation de JavaScript</h4>
+    <p>L'attaquant désactive JavaScript dans son navigateur, ce qui empêche la validation côté client de s'exécuter. Il peut ainsi soumettre le formulaire avec des données invalides.</p>
+
+    <h4>Étape 2 : Soumission de données malveillantes</h4>
+    <p>Il remplit les champs avec des données malveillantes, par exemple :</p>
+    <pre><code>Nom d'utilisateur : &lt;script&gt;alert('XSS')&lt;/script&gt;
+Adresse e-mail : test@example.com'); DROP TABLE users;--</code></pre>
+
+    <h4>Étape 3 : Envoi de la requête au serveur</h4>
+    <p>La requête est envoyée au serveur sans validation. Le serveur traite les données et les enregistre dans la base de données.</p>
+
+    <h4>Étape 4 : Exploitation des failles</h4>
+    <p>Les données malveillantes peuvent provoquer :</p>
+    <ul>
+      <li>L'exécution de scripts sur les navigateurs des autres utilisateurs (XSS), compromettant leurs sessions.</li>
+      <li>L'exécution de commandes non autorisées sur la base de données (Injection SQL/NoSQL).</li>
+    </ul>
+
+    <h3>Comment corriger la vulnérabilité</h3>
+    <p>Pour remédier à cette vulnérabilité, il est essentiel d'implémenter une validation complète côté serveur pour chaque entrée utilisateur. Voici les étapes à suivre :</p>
+
+    <h4>1. Validation des entrées côté serveur</h4>
+    <p>Utiliser des bibliothèques de validation pour vérifier les données reçues. Par exemple, avec Express.js :</p>
+    <pre><code>const express = require('express');
+const app = express();
+const { body, validationResult } = require('express-validator');
+
+app.post('/register', [
+  body('username').isAlphanumeric().withMessage('Le nom d\'utilisateur doit être alphanumérique.'),
+  body('email').isEmail().withMessage('Adresse e-mail invalide.')
+], (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  // Traitement de l'inscription
+});</code></pre>
+
+    <h4>2. Échapper les caractères spéciaux</h4>
+    <p>Lors de l'enregistrement ou de l'affichage des données, échapper les caractères spéciaux pour prévenir les injections et les attaques XSS.</p>
+
+    <h4>3. Utiliser des requêtes préparées</h4>
+    <p>Si vous utilisez une base de données, utilisez des requêtes préparées pour éviter les injections SQL/NoSQL.</p>
+
+    <h4>4. Maintenir la validation côté client</h4>
+    <p>La validation côté client améliore l'expérience utilisateur en fournissant un retour immédiat, mais elle ne doit pas être le seul mécanisme de validation.</p>
+
+    <h3>Bonnes pratiques supplémentaires</h3>
+    <ul>
+      <li><strong>Limiter la taille des entrées</strong> : Définir des limites sur la longueur des champs pour prévenir les attaques par déni de service.</li>
+      <li><strong>Journaliser les erreurs</strong> : Enregistrer les tentatives d'envoi de données invalides pour détecter les activités suspectes.</li>
+      <li><strong>Mettre à jour régulièrement les dépendances</strong> : S'assurer que les bibliothèques utilisées sont à jour pour bénéficier des correctifs de sécurité.</li>
+    </ul>
+
+    <h3>Ressources supplémentaires</h3>
+    <ul>
+      <li><a href="https://owasp.org/www-project-top-ten/OWASP_Top_Ten_2021-French/A04_2021-Insecure_Design" target="_blank">OWASP Top 10 - A04:2021 Conception peu sûre</a></li>
+      <li><a href="https://express-validator.github.io/docs/" target="_blank">Express Validator Documentation</a></li>
+      <li><a href="https://vuejs.org/guide/introduction.html" target="_blank">Vue.js Guide</a></li>
+      <li><a href="https://nodejs.org/fr/docs/guides/security/" target="_blank">Node.js Security Guide</a></li>
+    </ul>
+
+    <h3>Conclusion</h3>
+    <p>L'absence de validation côté serveur expose l'application à de nombreux risques de sécurité. En implémentant une validation robuste côté serveur et en suivant les bonnes pratiques de développement sécurisées, vous protégez votre application contre les attaques et garantissez l'intégrité des données.</p>
+  </div>
+
+  <script>
+    // Validation côté client
+    document.getElementById('registration-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const email = document.getElementById('email').value;
+      const resultDiv = document.getElementById('result');
+      const usernameRegex = /^[a-zA-Z0-9]+$/;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!usernameRegex.test(username)) {
+        resultDiv.innerHTML = '<span class="error">Le nom d\'utilisateur doit être alphanumérique.</span>';
+        return;
+      }
+
+      if (!emailRegex.test(email)) {
+        resultDiv.innerHTML = '<span class="error">Adresse e-mail invalide.</span>';
+        return;
+      }
+
+      // Envoi des données au serveur
+      fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          resultDiv.innerHTML = '<span class="success">Inscription réussie !</span>';
+        } else {
+          resultDiv.innerHTML = '<span class="error">' + data.message + '</span>';
+        }
+      });
+    });
+
+    // Affichage des explications
+    document.getElementById('toggleInfo').addEventListener('click', function() {
+      const info = document.getElementById('info');
+      info.style.display = info.style.display === 'none' ? 'block' : 'none';
+    });
+  </script>
+</body>
+</html>
+

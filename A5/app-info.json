@@ -1,0 +1,12 @@
+{
+  "title": "A5-nginx-misconfiguration-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une vulnérabilité liée à une mauvaise configuration du serveur NGINX pour des fins éducatives",
+  "author": "Votre Nom",
+  "license": "MIT",
+  "keywords": ["nginx", "configuration", "vulnérabilité", "sécurité", "simulation"],
+  "scripts": {
+    "start": "node server.js"
+  }
+}
+

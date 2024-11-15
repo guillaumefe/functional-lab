@@ -1,0 +1,12 @@
+{
+  "title": "A9-elk-false-logs-injection-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une vulnérabilité liée à l'injection de faux logs dans une infrastructure ELK Stack mal configurée",
+  "author": "Onepoint",
+  "license": "MIT",
+  "keywords": ["ELK", "faux logs", "vulnérabilité", "OWASP", "Elasticsearch", "Kibana", "Logstash", "Node.js", "Express"],
+  "scripts": {
+    "start": "node server.js"
+  }
+}
+

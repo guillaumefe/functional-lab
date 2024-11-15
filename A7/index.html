@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Attaque par énumération de tokens JWT</title>
+  <!-- Inclusion de Vue.js depuis un CDN sécurisé -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+    h2 { margin-top: 40px; }
+    #client-name { font-weight: bold; }
+    #result { margin-top: 20px; font-weight: bold; word-break: break-all; }
+    #protected { margin-top: 40px; padding: 20px; border: 1px solid #ccc; background-color: #f0f8ff; }
+    #info { margin-top: 40px; padding: 20px; border: 1px solid #ccc; background-color: #f9f9f9; }
+    .exp-section pre { background-color: #f0f0f0; padding: 10px; overflow-x: auto; }
+    button.toggle { margin-top: 20px; }
+    .highlight { background-color: #ffffcc; }
+    ul { list-style-type: disc; margin-left: 20px; }
+    ol { list-style-type: decimal; margin-left: 20px; }
+    code { background-color: #f4f4f4; padding: 2px 4px; }
+    .error { color: red; }
+    .success { color: green; }
+    .protected-content { display: none; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>Attaque par énumération de tokens JWT</h1>
+    <p>Bienvenue, <span id="client-name">{{ clientName }}</span>!</p>
+
+    <h2>Objectif de la démonstration</h2>
+    <p>Comprendre comment une mauvaise gestion des erreurs HTTP lors de la vérification des tokens JWT peut permettre à un attaquant de détourner des sessions via l'énumération des tokens.</p>
+
+    <form @submit.prevent="login" id="login-form">
+      <label for="username">Nom d'utilisateur :</label><br>
+      <input type="text" id="username" v-model="username" placeholder="Ex : utilisateur1"><br><br>
+      <label for="password">Mot de passe :</label><br>
+      <input type="password" id="password" v-model="password" placeholder="Ex : motdepasse123"><br><br>
+      <button type="submit">Se connecter</button>
+    </form>
+
+    <div id="result" v-html="resultMessage"></div>
+
+    <button @click="toggleInfo" class="toggle">Afficher les explications</button>
+
+    <div id="info" class="exp-section" v-if="showInfo">
+      <h2>À propos de cette vulnérabilité</h2>
+      <p>Cette page illustre les risques associés à une mauvaise gestion des erreurs HTTP lors de la vérification des tokens JWT. L'application utilise des tokens JWT pour l'authentification, mais répond différemment selon la validité du token, ce qui permet à un attaquant d'énumérer des tokens valides.</p>
+
+      <h3>Comment l'application fonctionne</h3>
+      <p>L'application propose un formulaire de connexion où les utilisateurs doivent fournir un nom d'utilisateur et un mot de passe. Une fois authentifiés, le serveur génère un token JWT que le client utilise pour accéder aux ressources protégées. Cependant, en cas d'erreur de token, les réponses HTTP diffèrent, permettant ainsi à un attaquant de tester différents tokens et d'identifier ceux qui sont valides.</p>
+
+      <h3>Pourquoi il y a une vulnérabilité</h3>
+      <p>La vulnérabilité survient parce que le serveur renvoie des réponses HTTP distinctes en fonction de la validité du token JWT. Par exemple, une réponse 401 pour un token invalide et 403 pour un token expiré ou malformé. Cette distinction permet à un attaquant de tester différents tokens, de déterminer leur validité et d'identifier les tokens valides.</p>
+
+      <h3>Impact potentiel</h3>
+      <p>Les conséquences de cette vulnérabilité peuvent inclure :</p>
+      <ul>
+        <li><strong>Détournement de session :</strong> L'attaquant peut identifier des tokens valides et se connecter en tant qu'utilisateur légitime. Cela pourrait lui permettre d'accéder à des informations confidentielles, telles que des comptes d'utilisateurs ou des informations financières.</li>
+        <li><strong>Accès non autorisé :</strong> Une fois un token valide obtenu, l'attaquant peut s'authentifier comme un utilisateur légitime. Cela peut inclure l'accès à des fonctionnalités administratives qui lui permettent de modifier ou d'effacer des données sensibles.</li>
+        <li><strong>Compromission des données :</strong> L'attaquant pourrait exploiter cette vulnérabilité pour lire ou exfiltrer des informations protégées qui pourraient avoir des répercussions sur la confidentialité des données des utilisateurs ou des systèmes de l'entreprise.</li>
+      </ul>
+
+      <h3>Étapes détaillées du scénario d'exploitation</h3>
+      <p>Voici un scénario détaillé illustrant comment un attaquant pourrait exploiter cette vulnérabilité :</p>
+
+      <h4>Étape 1 : Reconnaissance</h4>
+      <p>L'attaquant commence par observer le comportement de l'application. Il intercepte les requêtes HTTP contenant des tokens JWT, en utilisant des outils tels que **Burp Suite**, **Wireshark**, ou **Postman** pour capturer et analyser ces requêtes. En particulier, il surveille les réponses HTTP lorsque le token est valide, expiré, ou malformé. À chaque demande, le serveur renvoie une réponse différente selon l'état du token (par exemple, une réponse 403 pour un token invalide ou 401 pour un token expiré).</p>
+
+      <h4>Étape 2 : Génération de tokens aléatoires</h4>
+      <p>Ayant observé la façon dont le serveur réagit à différents états des tokens JWT, l'attaquant génère ensuite des tokens aléatoires ou manipule les tokens capturés. Par exemple, il peut essayer de deviner des identifiants dans la charge utile du token (le payload) ou manipuler l'algorithme de signature (en modifiant l'en-tête). L'attaquant utilise ensuite ces tokens modifiés pour interroger l'API de l'application. Il observe chaque réponse afin d'identifier les tokens valides.</p>
+
+      <h4>Étape 3 : Exploitation</h4>
+      <p>À chaque tentative, l'attaquant soumet un nouveau token et observe la réponse HTTP. Si le serveur renvoie une réponse 200, cela indique que le token est valide. Si le serveur renvoie une réponse 403 ou 401, l'attaquant sait que le token est invalide ou expiré. Grâce à ces informations, l'attaquant peut tester une grande quantité de tokens jusqu'à identifier des tokens valides.</p>
+
+      <h4>Étape 4 : Accès non autorisé</h4>
+      <p>Une fois qu'un token valide est identifié, l'attaquant peut l'utiliser pour accéder aux ressources protégées de l'application. Par exemple, il peut se connecter en tant qu'utilisateur légitime et accéder à des fonctionnalités réservées, consulter des informations confidentielles ou modifier des données sensibles. Il peut également se servir de ce token pour poursuivre l'attaque et obtenir des privilèges supplémentaires sur l'application.</p>
+
+      <h3>Comment corriger la vulnérabilité</h3>
+      <p>Pour corriger cette vulnérabilité et empêcher une attaque par énumération de tokens JWT, voici les étapes à suivre :</p>
+
+      <h4>1. Gestion uniforme des erreurs HTTP</h4>
+      <p>La première mesure consiste à uniformiser la gestion des erreurs JWT. Le serveur ne doit jamais révéler si un token est invalide, expiré ou mal formé à travers des réponses HTTP distinctes. Au lieu de cela, toutes les erreurs liées à l'authentification JWT doivent renvoyer le même code HTTP (par exemple, toujours 401 pour toute erreur liée à l'authentification, quelle que soit la nature de l'erreur).</p>
+
+      <h4>2. Rotation régulière des tokens JWT</h4>
+      <p>Pour limiter l'impact de la compromission d'un token JWT, il est essentiel d'imposer une politique stricte de rotation des tokens. Les tokens JWT doivent avoir une durée de vie limitée (par exemple, 15 minutes), et le serveur doit vérifier régulièrement la validité de chaque token. Cela empêche un attaquant d'exploiter un token valide pendant une période prolongée.</p>
+
+      <h4>3. Implémentation de l'authentification multi-facteurs (MFA)</h4>
+      <p>Pour renforcer la sécurité des sessions, l'application doit implémenter des mécanismes d'authentification multi-facteurs (MFA). En plus du token JWT, l'utilisateur devra fournir un autre facteur de vérification, tel qu'un code envoyé par SMS ou une authentification biométrique. Cela rendra beaucoup plus difficile pour un attaquant de détourner une session, même s'il parvient à obtenir un token valide.</p>
+
+      <h4>4. Surveillance et détection des tentatives d'énumération</h4>
+      <p>Il est crucial de mettre en place des systèmes de surveillance qui détectent et bloquent les tentatives d'énumération de tokens JWT. Par exemple, l'application doit enregistrer toutes les tentatives de connexion infructueuses et mettre en place des seuils de blocage après un certain nombre de tentatives échouées. Cela permet de limiter les chances qu'un attaquant découvre un token valide.</p>
+
+      <h3>Bonnes pratiques supplémentaires</h3>
+      <ul>
+        <li><strong>Limiter la durée de vie des tokens :</strong> Utiliser des tokens avec des expirations courtes pour réduire la fenêtre d'exploitation.</li>
+        <li><strong>Signer les tokens avec des clés robustes :</strong> Utiliser des algorithmes de signature sécurisés (comme HS256 ou RS256) et gérer les clés de manière sécurisée.</li>
+        <li><strong>Révoquer les tokens compromis :</strong> Implémenter une liste de révocation des tokens pour invalider les tokens compromis.</li>
+        <li><strong>Auditer régulièrement la sécurité :</strong> Effectuer des audits de sécurité pour identifier et corriger les vulnérabilités dans les systèmes d'authentification et de gestion des tokens.</li>
+      </ul>
+
+      <h3>Glossaire</h3>
+      <ul>
+        <li><strong>JWT (JSON Web Token) :</strong> Un format de token sécurisé permettant d'échanger des informations entre deux parties. Utilisé principalement pour l'authentification et la gestion des sessions utilisateur dans les applications web.</li>
+        <li><strong>HTTP 401 :</strong> Code de réponse HTTP signifiant que l'utilisateur n'est pas authentifié.</li>
+        <li><strong>HTTP 403 :</strong> Code de réponse HTTP signifiant que l'accès est interdit, même si l'utilisateur est authentifié.</li>
+        <li><strong>Algorithme de signature :</strong> Méthode utilisée pour signer un JWT et garantir son intégrité. Les algorithmes courants incluent HS256 (HMAC avec SHA-256) et RS256 (RSA avec SHA-256).</li>
+        <li><strong>Énumération de tokens :</strong> Technique utilisée par un attaquant pour tester différents tokens JWT et déterminer ceux qui sont valides, généralement en analysant les réponses du serveur.</li>
+        <li><strong>MFA (Authentification multi-facteurs) :</strong> Un mécanisme de sécurité qui nécessite plusieurs éléments de vérification pour authentifier un utilisateur, augmentant ainsi la sécurité des sessions.</li>
+        <li><strong>Burp Suite :</strong> Un outil de sécurité populaire utilisé pour tester la sécurité des applications web, y compris l'analyse des requêtes HTTP et des réponses pour détecter les vulnérabilités.</li>
+        <li><strong>Postman :</strong> Un outil d'API utilisé pour envoyer des requêtes HTTP et analyser les réponses du serveur, utile pour tester et automatiser les tests d'API.</li>
+        <li><strong>Wireshark :</strong> Un outil d'analyse réseau permettant de capturer et d'inspecter les paquets de données transitant sur le réseau, souvent utilisé pour la reconnaissance dans les attaques.</li>
+      </ul>
+
+      <h3>Ressources supplémentaires</h3>
+      <ul>
+        <li><a href="https://owasp.org/www-project-top-ten/OWASP_Top_Ten_2021-French/A07_2021-Identification_and_Authentication_Failures" target="_blank">OWASP Top 10 - A07:2021 Identification et Échecs d'Authentification</a></li>
+        <li><a href="https://jwt.io/introduction/" target="_blank">Introduction à JSON Web Tokens (JWT)</a></li>
+        <li><a href="https://expressjs.com/fr/guide/security.html" target="_blank">Express.js Security Guide</a></li>
+        <li><a href="https://nodejs.org/fr/docs/guides/security/" target="_blank">Node.js Security Guide</a></li>
+      </ul>
+
+      <h3>Conclusion</h3>
+      <p>Une mauvaise gestion des erreurs HTTP lors de la vérification des tokens JWT peut exposer l'application à des attaques d'énumération de tokens, conduisant à un détournement de session. En adoptant des pratiques de gestion des erreurs uniformes, en renforçant la rotation des tokens et en implémentant des mécanismes d'authentification multi-facteurs, vous pouvez protéger votre application contre ces attaques et garantir la sécurité des sessions utilisateur.</p>
+    </div>
+
+    <div id="protected" v-if="isAuthenticated">
+      <h2>Section Protégée</h2>
+      <p>Bienvenue dans la section protégée de l'application. Vous avez réussi à vous authentifier avec un token JWT valide.</p>
+    </div>
+  </div>
+
+  <script>
+    new Vue({
+      el: '#app',
+      data: {
+        clientName: 'Onepoint', // Nom du client corrigé
+        username: '',
+        password: '',
+        resultMessage: '',
+        showInfo: false,
+        isAuthenticated: false,
+        token: ''
+      },
+      methods: {
+        toggleInfo() {
+          this.showInfo = !this.showInfo;
+        },
+        login() {
+          // Envoi des données au serveur pour authentification
+          fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: this.username, password: this.password })
+          })
+          .then(response => {
+            if (response.status === 200) {
+              return response.json();
+            } else {
+              throw new Error('Échec de l\'authentification');
+            }
+          })
+          .then(data => {
+            if (data.success) {
+              this.token = data.token;
+              this.isAuthenticated = true;
+              this.resultMessage = '<span class="success">Connexion réussie ! Token JWT reçu.</span>';
+            } else {
+              this.resultMessage = '<span class="error">Échec de l\'authentification.</span>';
+            }
+          })
+          .catch(error => {
+            this.resultMessage = '<span class="error">Échec de l\'authentification.</span>';
+            console.error('Erreur:', error);
+          });
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+

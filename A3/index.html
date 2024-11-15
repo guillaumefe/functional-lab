@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Injection SQL sur une base de données shardée</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+    h2 { margin-top: 40px; }
+    #client-name { font-weight: bold; }
+    #result { margin-top: 20px; font-weight: bold; }
+    #info { margin-top: 40px; padding: 20px; border: 1px solid #ccc; background-color: #f9f9f9; }
+    .exp-section pre { background-color: #f0f0f0; padding: 10px; }
+    button.toggle { margin-top: 20px; }
+    .exp-section { display: none; }
+    .highlight { background-color: #ffffcc; }
+  </style>
+</head>
+<body>
+  <h1>Injection SQL sur une base de données shardée</h1>
+  <p>Bienvenue, <span id="client-name">Onepoint</span>!</p>
+
+  <h2>Objectif de l'attaque</h2>
+  <p>Comprendre les risques d'une injection SQL sur une base de données distribuée et comment elle peut affecter plusieurs shards simultanément.</p>
+
+  <form id="sql-form">
+    <label for="user-input">Rechercher un utilisateur :</label><br>
+    <input type="text" id="user-input" name="user-input" size="50" placeholder="Entrez un nom d'utilisateur"><br><br>
+    <button type="submit">Rechercher</button>
+  </form>
+
+  <div id="result"></div>
+
+  <button id="toggleInfo" class="toggle">Afficher les explications</button>
+
+  <div id="info" class="exp-section">
+    <h2>À propos de cette vulnérabilité</h2>
+    <p>Cette page illustre les risques associés à l'<strong>injection SQL</strong> dans le contexte d'une base de données <strong>shardée</strong> (distribuée). Les bases de données shardées répartissent les données sur plusieurs serveurs pour améliorer les performances et la scalabilité. Cependant, une injection SQL peut avoir des conséquences plus graves dans ce contexte. Comprendre cette vulnérabilité est essentiel pour assurer la sécurité et l'intégrité des systèmes d'information modernes.</p>
+
+    <h3>Comment l'application fonctionne</h3>
+    <p>L'application proposée est un système de recherche d'utilisateurs où l'on peut saisir un nom d'utilisateur pour obtenir des informations correspondantes. Lorsqu'un utilisateur entre un nom, l'application génère une requête SQL pour interroger la base de données. Dans un environnement shardé, ces requêtes peuvent être réparties sur plusieurs serveurs, chaque shard contenant une partie des données.</p>
+    <p>Par exemple, les utilisateurs dont le nom commence par 'A' à 'M' pourraient être sur le shard 1, et ceux de 'N' à 'Z' sur le shard 2. Cette répartition permet d'optimiser les temps de réponse et de gérer de grandes quantités de données.</p>
+    <p>Cependant, si les entrées utilisateur ne sont pas correctement validées ou assainies, un attaquant peut injecter du code SQL malveillant dans le champ de saisie. Cela peut entraîner l'exécution de requêtes non prévues par l'application, affectant potentiellement tous les shards de la base de données.</p>
+
+    <h3>Pourquoi il y a une vulnérabilité</h3>
+    <p>La vulnérabilité survient principalement en raison de l'absence de validation ou d'assainissement des entrées utilisateur. Lorsque les données entrées par l'utilisateur sont directement intégrées dans une requête SQL sans vérification, cela ouvre la porte à des injections SQL.</p>
+    <p>Dans le contexte d'une base de données shardée :</p>
+    <ul>
+      <li><strong>Complexité accrue</strong> : La gestion de plusieurs shards rend le suivi des requêtes plus complexe, ce qui peut conduire à des oublis dans la sécurisation.</li>
+      <li><strong>Propagation des effets</strong> : Une injection sur un shard peut potentiellement affecter d'autres shards si le système permet des opérations inter-shards.</li>
+      <li><strong>Multiplication des points d'entrée</strong> : Plus il y a de shards, plus il y a de points potentiels où une injection peut se produire.</li>
+    </ul>
+    <p>De plus, certaines vulnérabilités spécifiques, comme le CVE-2019-10164, exploitent des failles dans la façon dont les bases de données gèrent les partitions ou les shards, permettant des injections même lorsque des mesures de sécurité sont en place.</p>
+
+    <h3>Impact potentiel</h3>
+    <p>Les conséquences d'une injection SQL sur une base de données shardée peuvent être particulièrement sévères :</p>
+    <ul>
+      <li><strong>Accès non autorisé aux données sensibles</strong> : L'attaquant peut extraire des informations confidentielles, telles que des données personnelles, des informations financières ou des identifiants de connexion.</li>
+      <li><strong>Modification ou suppression de données</strong> : L'attaquant peut altérer ou effacer des enregistrements, compromettant l'intégrité des données sur plusieurs shards.</li>
+      <li><strong>Escalade de privilèges</strong> : En exploitant des failles, l'attaquant peut obtenir des droits administratifs sur la base de données, augmentant ainsi son champ d'action.</li>
+      <li><strong>Atteinte à la disponibilité</strong> : Des requêtes malveillantes peuvent surcharger le système, entraînant des dénis de service et affectant la disponibilité de l'application pour les utilisateurs légitimes.</li>
+      <li><strong>Compromission de la confiance</strong> : Une violation de données peut nuire à la réputation de l'entreprise, entraînant une perte de confiance des clients et des partenaires.</li>
+    </ul>
+    <p>Dans un environnement réglementé, comme le secteur bancaire ou médical, de telles failles peuvent également entraîner des sanctions légales et financières importantes en raison de la non-conformité aux normes de protection des données.</p>
+
+    <h3>Scénario d'exploitation détaillé</h3>
+    <p>Voici un scénario illustrant comment un attaquant pourrait exploiter cette vulnérabilité :</p>
+    <ol>
+      <li><strong>Reconnaissance</strong> : L'attaquant analyse l'application pour identifier les points d'entrée. Il remarque que le champ de recherche d'utilisateur peut être vulnérable à l'injection SQL.</li>
+      <li><strong>Test initial</strong> : Il tente d'entrer des caractères spéciaux ou des opérateurs SQL pour voir comment l'application réagit. Par exemple, en entrant <code>' OR '1'='1</code>, il peut vérifier si la requête SQL n'est pas correctement protégée.</li>
+      <li><strong>Identification du sharding</strong> : En observant les réponses de l'application, l'attaquant déduit que les données sont réparties sur plusieurs shards. Des variations dans les temps de réponse ou des messages d'erreur spécifiques peuvent révéler cette architecture.</li>
+      <li><strong>Exploitation avancée</strong> : Il utilise des outils comme SQLMap pour automatiser l'injection et extraire des données. En exploitant la vulnérabilité, il peut interroger plusieurs shards et collecter des informations de différentes parties de la base de données.</li>
+      <li><strong>Pivot entre shards</strong> : Grâce à des requêtes spécialement conçues, l'attaquant peut accéder à des données sur d'autres shards, même si elles ne sont pas directement liées au point d'entrée initial.</li>
+      <li><strong>Consolidation des données</strong> : Il agrège les informations recueillies pour obtenir une vue complète des données sensibles de l'entreprise.</li>
+      <li><strong>Effacement des traces</strong> : L'attaquant peut tenter de supprimer les logs ou de modifier des données pour masquer son activité, rendant la détection plus difficile.</li>
+    </ol>
+
+    <h3>Correctifs de la vulnérabilité</h3>
+    <p>Pour remédier à cette vulnérabilité et prévenir de futures attaques, plusieurs mesures doivent être mises en place :</p>
+    <ul>
+      <li><strong>Utilisation de requêtes préparées ou paramétrées</strong> : Cela empêche l'interprétation des entrées utilisateur comme du code SQL. Les paramètres sont traités comme des données, éliminant ainsi le risque d'injection.</li>
+      <li><strong>Validation et assainissement des entrées</strong> : Toutes les données fournies par l'utilisateur doivent être validées pour s'assurer qu'elles respectent le format attendu (par exemple, pas de caractères spéciaux non autorisés).</li>
+      <li><strong>Limitation des privilèges</strong> : Les comptes utilisés pour accéder à la base de données doivent avoir les privilèges minimums nécessaires. Cela limite l'impact potentiel en cas de compromission.</li>
+      <li><strong>Mises à jour régulières</strong> : Maintenir à jour les systèmes de gestion de base de données et les frameworks pour bénéficier des correctifs de sécurité récents.</li>
+      <li><strong>Surveillance et audit</strong> : Mettre en place des systèmes de détection des anomalies et des logs pour identifier rapidement les activités suspectes.</li>
+      <li><strong>Segmentation du réseau</strong> : Isoler les shards critiques sur des segments de réseau sécurisés pour réduire les possibilités de pivot entre shards.</li>
+    </ul>
+    <p>En combinant ces mesures, l'entreprise renforce significativement sa posture de sécurité et réduit les risques associés aux injections SQL.</p>
+
+    <h3>Référence de la vulnérabilité</h3>
+    <p>Cette vulnérabilité est similaire à celle décrite dans le CVE suivant :</p>
+    <ul>
+      <li><a href="https://nvd.nist.gov/vuln/detail/CVE-2019-10164" target="_blank">CVE-2019-10164</a> - Injection SQL dans les tables partitionnées de PostgreSQL.</li>
+    </ul>
+    <p>Le CVE-2019-10164 détaille une vulnérabilité spécifique où une injection SQL est possible dans les tables partitionnées de PostgreSQL, permettant à un attaquant de contourner les contrôles de sécurité et d'exécuter des commandes arbitraires.</p>
+
+    <h3>Catégorie OWASP</h3>
+    <p>Cette vulnérabilité correspond à la catégorie suivante dans le Top 10 de l'OWASP :</p>
+    <ul>
+      <li><strong>A03:2021 - Injection</strong></li>
+    </ul>
+    <p>L'injection reste l'une des menaces les plus critiques pour les applications web. Elle se produit lorsque des données non fiables sont envoyées à un interpréteur dans le cadre d'une commande ou d'une requête. L'objectif est d'inciter l'interpréteur à exécuter des commandes non prévues, permettant à l'attaquant d'accéder à des données ou des fonctionnalités non autorisées.</p>
+
+    <h3>Glossaire</h3>
+    <ul>
+      <li><strong>Injection SQL</strong> : Une technique d'injection de code qui permet à un attaquant d'interférer avec les requêtes SQL que l'application envoie à la base de données. Cela peut permettre l'accès, la modification ou la suppression non autorisés de données.</li>
+      <li><strong>Sharding</strong> : Une méthode de partitionnement horizontal des données dans une base de données en les répartissant sur plusieurs serveurs ou shards, améliorant ainsi les performances et la capacité de traitement.</li>
+      <li><strong>Requêtes préparées</strong> : Des requêtes SQL précompilées où les paramètres sont liés lors de l'exécution, empêchant l'injection de code malveillant.</li>
+      <li><strong>Requêtes paramétrées</strong> : Similaires aux requêtes préparées, elles utilisent des paramètres pour séparer le code SQL des données, assurant que les entrées utilisateur ne peuvent pas altérer la structure de la requête.</li>
+      <li><strong>Pivot</strong> : Dans le contexte de la sécurité, il s'agit de la capacité d'un attaquant à déplacer son point d'attaque d'un système ou d'une partie du réseau à un autre, élargissant ainsi son champ d'action.</li>
+      <li><strong>CVSS</strong> : Common Vulnerability Scoring System, un système standardisé pour évaluer la gravité des vulnérabilités, permettant de prioriser les efforts de remédiation.</li>
+      <li><strong>SQLMap</strong> : Un outil open-source qui automatise la détection et l'exploitation des vulnérabilités d'injection SQL, ainsi que la prise de contrôle des serveurs de bases de données.</li>
+      <li><strong>Escalade de privilèges</strong> : Lorsque l'attaquant obtient des niveaux d'accès supérieurs à ceux prévus, lui permettant d'effectuer des actions normalement restreintes.</li>
+      <li><strong>Assainissement des entrées</strong> : Le processus de nettoyage et de validation des données fournies par l'utilisateur pour s'assurer qu'elles sont sûres et conformes aux attentes.</li>
+      <li><strong>Partitionnement horizontal</strong> : La division d'une table de base de données en plusieurs tables contenant chacune une partie des lignes, généralement pour améliorer les performances.</li>
+    </ul>
+
+    <h3>Ressources supplémentaires</h3>
+    <p>Pour approfondir vos connaissances et mettre en place des pratiques de sécurité robustes, consultez les ressources suivantes :</p>
+    <ul>
+      <li><a href="https://owasp.org/www-project-top-ten/OWASP_Top_Ten_2021-Francais/A03_2021-Injection" target="_blank">OWASP Top 10 - A03:2021 Injection (Français)</a> : Une description détaillée des risques liés aux injections et des méthodes de prévention.</li>
+      <li><a href="https://www.php.net/manual/fr/pdo.prepared-statements.php" target="_blank">PHP : Requêtes préparées avec PDO</a> : Guide sur l'utilisation des requêtes préparées en PHP pour sécuriser les interactions avec la base de données.</li>
+      <li><a href="https://laravel.com/docs/8.x/database#running-queries" target="_blank">Documentation Laravel - Exécution de requêtes</a> : Comment utiliser le Query Builder de Laravel pour écrire des requêtes sécurisées.</li>
+      <li><a href="https://www.postgresql.org/docs/current/ddl-partitioning.html" target="_blank">Documentation PostgreSQL - Partitionnement</a> : Informations sur la façon dont PostgreSQL gère le partitionnement et les meilleures pratiques associées.</li>
+      <li><a href="https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html" target="_blank">OWASP Cheat Sheet - Prévention des injections SQL</a> : Une liste de bonnes pratiques pour éviter les injections SQL.</li>
+      <li><a href="https://www.acunetix.com/blog/articles/understanding-sql-injection/" target="_blank">Comprendre l'injection SQL</a> : Un article détaillé expliquant les mécanismes des injections SQL et comment les prévenir.</li>
+    </ul>
+  </div>
+
+  <script>
+    document.getElementById('toggleInfo').addEventListener('click', function() {
+      const info = document.getElementById('info');
+      info.style.display = info.style.display === 'none' ? 'block' : 'none';
+    });
+
+    document.getElementById('sql-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const userInput = document.getElementById('user-input').value;
+
+      // Simuler une recherche sécurisée sans exécuter de code malveillant
+      const resultDiv = document.getElementById('result');
+      if(userInput.trim() === '') {
+        resultDiv.innerHTML = '<span style="color: red;">Veuillez entrer un nom d\'utilisateur valide.</span>';
+      } else {
+        // Ici, nous simulerions une requête sécurisée à la base de données
+        resultDiv.innerHTML = `<span style="color: green;">Résultats pour l'utilisateur : ${userInput}</span>`;
+      }
+    });
+  </script>
+</body>
+</html>
+

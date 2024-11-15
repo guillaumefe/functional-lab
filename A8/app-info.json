@@ -1,0 +1,12 @@
+{
+  "title": "A8-ci-backdoor-injection-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une vulnérabilité liée à l'injection de backdoors via des pipelines CI compromis",
+  "author": "Onepoint",
+  "license": "MIT",
+  "keywords": ["CI", "backdoor", "vulnérabilité", "OWASP", "Jenkins", "Node.js", "Express"],
+  "scripts": {
+    "start": "node server.js"
+  }
+}
+

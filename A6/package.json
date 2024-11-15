@@ -1,0 +1,15 @@
+{
+  "name": "insecure-design-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une vulnérabilité liée à l'absence de validation côté serveur",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Onepoint",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+

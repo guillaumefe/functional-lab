@@ -1,0 +1,16 @@
+{
+  "name": "nginx-misconfiguration-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une vulnérabilité liée à une mauvaise configuration du serveur NGINX",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Votre Nom",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "path": "^0.12.7"
+  }
+}
+

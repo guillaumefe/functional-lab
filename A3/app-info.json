@@ -1,0 +1,12 @@
+{
+  "title": "A3-sql-injection-sharding-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une injection SQL sur une base de données shardée pour des fins éducatives",
+  "author": "Votre Nom",
+  "license": "MIT",
+  "keywords": ["sql", "injection", "sharding", "sécurité", "vulnérabilité", "simulation"],
+  "scripts": {
+    "start": "node server.js"
+  }
+}
+

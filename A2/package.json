@@ -1,0 +1,16 @@
+{
+  "name": "aes-ecb-vulnerability-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une vulnérabilité liée à l'utilisation de l'algorithme AES en mode ECB",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Votre Nom",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "path": "^0.12.7"
+  }
+}
+

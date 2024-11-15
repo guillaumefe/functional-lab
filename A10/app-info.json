@@ -1,0 +1,12 @@
+{
+  "title": "A10-ssrf-vulnerability-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une vulnérabilité SSRF via des requêtes URL mal validées",
+  "author": "Onepoint",
+  "license": "MIT",
+  "keywords": ["SSRF", "vulnérabilité", "OWASP", "Django", "PostgreSQL", "Node.js", "Express"],
+  "scripts": {
+    "start": "node server.js"
+  }
+}
+

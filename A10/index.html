@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>SSRF via des requêtes URL mal validées</title>
+  <!-- Inclusion de Vue.js depuis un CDN sécurisé -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+    h2 { margin-top: 40px; }
+    #client-name { font-weight: bold; }
+    #result { margin-top: 20px; font-weight: bold; word-break: break-all; }
+    #info { margin-top: 40px; padding: 20px; border: 1px solid #ccc; background-color: #f9f9f9; }
+    .exp-section pre { background-color: #f0f0f0; padding: 10px; overflow-x: auto; }
+    button.toggle { margin-top: 20px; }
+    .highlight { background-color: #ffffcc; }
+    ul { list-style-type: disc; margin-left: 20px; }
+    ol { list-style-type: decimal; margin-left: 20px; }
+    code { background-color: #f4f4f4; padding: 2px 4px; }
+    .error { color: red; }
+    .success { color: green; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>SSRF via des requêtes URL mal validées</h1>
+    <p>Bienvenue, <span id="client-name">{{ clientName }}</span>!</p>
+
+    <h2>Objectif de la démonstration</h2>
+    <p>Comprendre comment une application vulnérable au **Server-Side Request Forgery (SSRF)** peut permettre à un attaquant d'exploiter des systèmes internes ou des services via des URL soumises par l'utilisateur.</p>
+
+    <form @submit.prevent="submitForm" id="ssrf-form">
+      <label for="url">URL à tester :</label><br>
+      <input type="text" id="url" v-model="userURL" placeholder="Ex : http://localhost:8000/admin"><br><br>
+      <button type="submit">Tester l'URL</button>
+    </form>
+
+    <div id="result" v-html="resultMessage"></div>
+
+    <button @click="toggleInfo" class="toggle">Afficher les explications</button>
+
+    <div id="info" class="exp-section" v-show="showInfo">
+      <h2>À propos de cette vulnérabilité</h2>
+      <p>Cette page illustre les risques associés à une vulnérabilité **SSRF** (Server-Side Request Forgery). Si une application permet à un utilisateur de soumettre des URL qui ne sont pas correctement validées, un attaquant peut utiliser cette vulnérabilité pour effectuer des requêtes malveillantes vers des systèmes internes ou des services protégés.</p>
+
+      <h3>Comment l'attaque fonctionne</h3>
+      <p>SSRF permet à un attaquant de tromper l'application en lui faisant envoyer des requêtes HTTP vers des adresses non autorisées (souvent des adresses internes). Cela peut compromettre la sécurité des systèmes internes de l'entreprise ou révéler des informations sensibles. Si la validation des URL soumises est faible, l'attaquant peut soumettre des requêtes vers des services internes tels que `http://localhost:8000` ou `http://127.0.0.1:5000`, et accéder à des ressources qui ne sont normalement pas accessibles depuis l'extérieur.</p>
+
+      <h3>Étapes détaillées du scénario d'exploitation</h3>
+
+      <h4>Étape 1 : Reconnaissance</h4>
+      <p>L'attaquant soumet une URL externe, par exemple `http://example.com`, et observe comment l'application traite cette requête. Si l'application fait suivre la requête sans validation, cela indique une vulnérabilité SSRF potentielle.</p>
+
+      <h4>Étape 2 : Soumission de requêtes internes</h4>
+      <p>L'attaquant soumet ensuite des URL pointant vers des services internes non exposés, comme :</p>
+      <pre><code>http://localhost:8000/admin</code></pre>
+      <p>Si cette URL interne est acceptée, l'attaquant peut accéder à l'interface d'administration locale ou à d'autres services internes.</p>
+
+      <h4>Étape 3 : Exploitation complète</h4>
+      <p>Une fois qu'il a découvert des services internes accessibles via SSRF, l'attaquant peut exploiter ces ressources pour exfiltrer des données ou compromettre le système. Par exemple, il pourrait accéder à une API interne ou à une interface de gestion qui n'est pas censée être exposée au public.</p>
+
+      <h3>Impact de la vulnérabilité</h3>
+      <p>Le principal impact d'une vulnérabilité SSRF est la capacité de l'attaquant à interagir avec des services internes non exposés. Cela peut inclure l'accès à des bases de données, à des systèmes d'administration, ou même à des API sensibles qui ne sont pas protégées contre les requêtes internes. Cela peut entraîner des fuites de données ou l'exécution de commandes non autorisées.</p>
+
+      <h3>Comment corriger la vulnérabilité</h3>
+      <p>Pour remédier à cette vulnérabilité et éviter les attaques SSRF, voici les mesures à prendre :</p>
+
+      <h4>1. Restreindre les requêtes aux URL externes valides</h4>
+      <p>Limiter les requêtes HTTP à des domaines externes autorisés uniquement. Utiliser des listes blanches pour contrôler quels domaines peuvent être soumis par les utilisateurs.</p>
+
+      <h4>2. Bloquer les adresses IP internes</h4>
+      <p>Mettre en place des règles qui bloquent les requêtes envoyées vers des adresses IP internes comme `127.0.0.1`, `localhost`, ou des adresses de réseaux privés (par exemple, `10.0.0.0/8`, `192.168.0.0/16`).</p>
+
+      <h4>3. Valider et filtrer les entrées utilisateur</h4>
+      <p>Implémenter une validation stricte des URL soumises par l'utilisateur pour s'assurer que seules des requêtes externes autorisées sont permises. Valider également le format des URL pour éviter les tentatives de contournement.</p>
+
+      <h3>Glossaire</h3>
+      <ul>
+        <li><strong>SSRF (Server-Side Request Forgery) :</strong> Une attaque où un attaquant peut forcer un serveur à effectuer des requêtes HTTP vers des ressources non autorisées.</li>
+        <li><strong>Requête interne :</strong> Une requête envoyée à un système ou service interne d'une organisation, souvent non accessible depuis l'extérieur.</li>
+        <li><strong>PostgreSQL :</strong> Un système de gestion de base de données relationnelle open-source utilisé pour stocker des données dans cette application.</li>
+      </ul>
+
+      <h3>Ressources supplémentaires</h3>
+      <ul>
+        <li><a href="https://owasp.org/www-project-top-ten/OWASP_Top_Ten_2021-French/A10_2021-SSRF" target="_blank">OWASP Top 10 - A10:2021 SSRF</a></li>
+        <li><a href="https://docs.djangoproject.com/en/stable/" target="_blank">Documentation Django</a></li>
+        <li><a href="https://www.postgresql.org/docs/" target="_blank">Documentation PostgreSQL</a></li>
+      </ul>
+
+      <h3>Conclusion</h3>
+      <p>Corriger les vulnérabilités SSRF est essentiel pour protéger les systèmes internes contre les accès non autorisés. En mettant en place des mécanismes de validation des URL, en restreignant les requêtes aux domaines autorisés, et en bloquant l'accès aux adresses internes, vous réduisez considérablement le risque de SSRF.</p>
+    </div>
+  </div>
+
+  <script>
+    new Vue({
+      el: '#app',
+      data: {
+        clientName: 'Onepoint', // Nom du client
+        userURL: '',
+        resultMessage: '',
+        showInfo: false
+      },
+      methods: {
+        toggleInfo() {
+          this.showInfo = !this.showInfo;
+        },
+        submitForm() {
+          // Simuler une requête SSRF
+          if (this.userURL.includes('localhost') || this.userURL.includes('127.0.0.1')) {
+            this.resultMessage = '<span class="success">Requête SSRF envoyée avec succès vers un service interne !</span>';
+          } else {
+            this.resultMessage = '<span class="error">Requête externe envoyée, mais aucune réponse interne reçue.</span>';
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+

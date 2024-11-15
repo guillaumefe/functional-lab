@@ -1,0 +1,16 @@
+{
+  "name": "sql-injection-sharding-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une injection SQL sur une base de données shardée",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Votre Nom",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "path": "^0.12.7"
+  }
+}
+

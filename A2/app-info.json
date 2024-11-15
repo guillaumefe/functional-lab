@@ -1,0 +1,12 @@
+{
+  "title": "A2-aes-ecb-vulnerability-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une vulnérabilité liée à l'utilisation de l'algorithme AES en mode ECB pour des fins éducatives",
+  "author": "Votre Nom",
+  "license": "MIT",
+  "keywords": ["aes", "ecb", "cryptographie", "vulnérabilité", "sécurité", "simulation"],
+  "scripts": {
+    "start": "node server.js"
+  }
+}
+

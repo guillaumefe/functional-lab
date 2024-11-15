@@ -1,0 +1,16 @@
+{
+  "name": "jwt-session-attack-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une vulnérabilité liée à l'énumération des tokens JWT via des réponses HTTP mal configurées",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Onepoint",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0"
+  }
+}
+

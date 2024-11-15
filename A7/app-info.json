@@ -1,0 +1,12 @@
+{
+  "title": "A7-jwt-session-attack-demo",
+  "version": "1.0.0",
+  "description": "Simulation d'une vulnérabilité liée à l'énumération des tokens JWT via des réponses HTTP mal configurées",
+  "author": "Onepoint",
+  "license": "MIT",
+  "keywords": ["JWT", "sécurité", "vulnérabilité", "authentification", "OWASP", "Node.js", "Express"],
+  "scripts": {
+    "start": "node server.js"
+  }
+}
+
