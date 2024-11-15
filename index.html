@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Vulnérabilité de chiffrement via l'algorithme ECB</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+    h2 { margin-top: 40px; }
+    #client-name { font-weight: bold; }
+    #result { margin-top: 20px; font-weight: bold; word-break: break-all; }
+    #info { margin-top: 40px; padding: 20px; border: 1px solid #ccc; background-color: #f9f9f9; }
+    .exp-section pre { background-color: #f0f0f0; padding: 10px; overflow-x: auto; }
+    button.toggle { margin-top: 20px; }
+    .exp-section { display: none; }
+    .highlight { background-color: #ffffcc; }
+  </style>
+</head>
+<body>
+  <h1>Vulnérabilité de chiffrement via l'algorithme ECB</h1>
+  <p>Bienvenue, <span id="client-name">Onepoint</span>!</p>
+
+  <h2>Objectif de l'attaque</h2>
+  <p>Comprendre les risques associés à l'utilisation de l'algorithme de chiffrement AES en mode ECB et comment cela peut mener à la divulgation d'informations sensibles.</p>
+
+  <form id="encrypt-form">
+    <label for="plaintext">Entrez des données sensibles à chiffrer :</label><br>
+    <textarea id="plaintext" name="plaintext" rows="4" cols="50" placeholder="SecretDataSecretDataSecretDataSecretData"></textarea><br><br>
+    <button type="submit">Chiffrer les données</button>
+  </form>
+
+  <div id="result"></div>
+
+  <button id="toggleInfo" class="toggle">Afficher les explications</button>
+
+  <div id="info" class="exp-section">
+    <h2>À propos de cette vulnérabilité</h2>
+    <p>Cette page illustre les risques associés à l'utilisation de l'<strong>algorithme de chiffrement AES en mode ECB (Electronic Codebook)</strong>. Le mode ECB est connu pour être <strong>insecure</strong> car il ne masque pas les motifs répétitifs présents dans les données chiffrées. Cela peut permettre à un attaquant de déduire des informations sensibles à partir du texte chiffré.</p>
+
+    <h3>Comment l'application fonctionne</h3>
+    <p>L'application permet aux utilisateurs d'entrer des données sensibles qui sont ensuite chiffrées à l'aide de l'algorithme AES en mode ECB. Le résultat du chiffrement est affiché à l'utilisateur. Cependant, en raison des faiblesses du mode ECB, des motifs dans les données peuvent être détectés dans le texte chiffré, ce qui peut mener à des attaques de cryptanalyse.</p>
+
+    <h3>Exemple illustratif</h3>
+    <p>Utilisons l'exemple fourni dans le <strong>placeholder</strong> :</p>
+    <pre>SecretDataSecretDataSecretDataSecretData</pre>
+    <p>Ce texte contient une répétition du mot <strong>"SecretData"</strong> quatre fois de suite. Lorsqu'on le chiffre en utilisant AES en mode ECB, le texte chiffré résultant présentera des blocs identiques pour chaque occurrence de <strong>"SecretData"</strong>. Cela signifie que les blocs chiffrés correspondants seront exactement les mêmes, révélant ainsi le motif répétitif.</p>
+
+    <h3>Analyse détaillée de la vulnérabilité</h3>
+    <p>Pour comprendre en profondeur pourquoi le mode ECB est vulnérable, examinons le processus de chiffrement :</p>
+    <ul>
+      <li><strong>Division en blocs</strong> : Le texte en clair est divisé en blocs de taille fixe (16 octets pour AES).</li>
+      <li><strong>Chiffrement indépendant</strong> : Chaque bloc est chiffré séparément en utilisant la même clé sans aucune interaction avec les autres blocs.</li>
+    </ul>
+    <p>Dans notre exemple, le texte en clair est divisé en plusieurs blocs identiques :</p>
+    <pre>
+Bloc 1 : "SecretDataSecre"
+Bloc 2 : "tDataSecretData"
+    </pre>
+    <p>Si les blocs contiennent les mêmes données, le chiffrement en mode ECB produira des blocs chiffrés identiques. Un attaquant observant le texte chiffré peut ainsi déduire que certaines parties du texte en clair se répètent, ce qui est une information précieuse pour la cryptanalyse.</p>
+
+    <h3>Scénario d'exploitation détaillé</h3>
+    <p>Voici un scénario détaillé illustrant comment un attaquant pourrait exploiter cette vulnérabilité :</p>
+
+    <h4>Étape 1 : Reconnaissance</h4>
+    <p>L'attaquant intercepte plusieurs messages chiffrés transmis par l'application. En analysant les données, il remarque que les blocs chiffrés de 16 octets se répètent à des positions spécifiques. Cela suggère que l'application utilise AES en mode ECB.</p>
+
+    <h4>Étape 2 : Collecte des textes chiffrés</h4>
+    <p>L'attaquant collecte un grand nombre de textes chiffrés pour augmenter les chances de repérer des motifs répétitifs. Il peut également provoquer l'envoi de messages chiffrés en interagissant avec l'application, par exemple en soumettant des formulaires.</p>
+
+    <h4>Étape 3 : Analyse des blocs</h4>
+    <p>En divisant le texte chiffré en blocs de 16 octets, l'attaquant identifie les blocs qui apparaissent plusieurs fois. Ces blocs identiques indiquent que les blocs de texte en clair correspondants sont également identiques.</p>
+
+    <h4>Étape 4 : Déduction des données en clair</h4>
+    <p>Si l'attaquant connaît ou peut deviner certaines parties du texte en clair, il peut commencer à établir une correspondance entre les blocs chiffrés et les blocs en clair. Par exemple, s'il sait que les numéros de carte de crédit commencent par "4111", il peut rechercher le bloc chiffré correspondant à cette séquence.</p>
+
+    <h4>Étape 5 : Reconstitution des informations sensibles</h4>
+    <p>En combinant les informations déduites et les motifs identifiés, l'attaquant peut progressivement reconstituer des données sensibles comme des numéros de carte de crédit, des identifiants personnels ou d'autres informations confidentielles.</p>
+
+    <h4>Étape 6 : Exploitation des données</h4>
+    <p>Avec les informations obtenues, l'attaquant peut :</p>
+    <ul>
+      <li>Effectuer des transactions frauduleuses.</li>
+      <li>Accéder à des comptes utilisateur.</li>
+      <li>Vendre les données sur le marché noir.</li>
+      <li>Lancer des attaques de phishing ciblées.</li>
+    </ul>
+
+    <h3>Pourquoi le mode ECB est-il vulnérable ?</h3>
+    <p>Le mode ECB est vulnérable car il ne fournit pas de diffusion ni de confusion, deux propriétés essentielles pour un chiffrement sécurisé. Voici quelques raisons spécifiques :</p>
+    <ul>
+      <li><strong>Absence de vecteur d'initialisation (IV)</strong> : Le mode ECB n'utilise pas d'IV, ce qui signifie qu'il n'y a pas d'aléa ajouté au processus de chiffrement.</li>
+      <li><strong>Chiffrement déterministe</strong> : Le même bloc de texte en clair chiffré avec la même clé produira toujours le même bloc chiffré.</li>
+      <li><strong>Révélations de motifs</strong> : Les motifs dans le texte en clair, tels que les répétitions, sont préservés dans le texte chiffré.</li>
+    </ul>
+    <p>Ces faiblesses rendent le mode ECB inadapté pour chiffrer des données sensibles, en particulier lorsque des motifs peuvent être présents.</p>
+
+    <h3>Comparaison avec des modes de chiffrement sécurisés</h3>
+    <p>Les modes de chiffrement comme CBC (Cipher Block Chaining) et GCM (Galois/Counter Mode) surmontent les limitations du mode ECB :</p>
+
+    <h4>CBC (Cipher Block Chaining)</h4>
+    <ul>
+      <li>Utilise un vecteur d'initialisation (IV) aléatoire pour le premier bloc.</li>
+      <li>Chaque bloc de texte en clair est combiné avec le bloc chiffré précédent avant le chiffrement.</li>
+      <li>Les mêmes blocs de texte en clair produisent des blocs chiffrés différents en raison de l'enchaînement.</li>
+    </ul>
+
+    <h4>GCM (Galois/Counter Mode)</h4>
+    <ul>
+      <li>Offre à la fois le chiffrement et l'authentification des données.</li>
+      <li>Utilise un compteur pour générer un flux de clés unique pour chaque bloc.</li>
+      <li>Permet le chiffrement parallèle des blocs, améliorant les performances.</li>
+    </ul>
+
+    <p>En adoptant ces modes de chiffrement, les motifs dans le texte en clair sont masqués, et la sécurité globale du système est renforcée.</p>
+
+    <h3>Comment corriger la vulnérabilité dans le code</h3>
+    <p>Voici comment vous pouvez mettre à jour votre code Java avec Spring Boot pour utiliser un mode de chiffrement sécurisé :</p>
+
+    <h4>Code vulnérable utilisant AES en mode ECB :</h4>
+    <pre>
+// Code vulnérable
+Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+byte[] encryptedData = cipher.doFinal(plainText.getBytes());
+    </pre>
+
+    <h4>Code corrigé utilisant AES en mode CBC :</h4>
+    <pre>
+// Importation des classes nécessaires
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.SecureRandom;
+
+// Génération d'un IV sécurisé
+SecureRandom secureRandom = new SecureRandom();
+byte[] iv = new byte[16];
+secureRandom.nextBytes(iv);
+IvParameterSpec ivParams = new IvParameterSpec(iv);
+
+// Initialisation du chiffrement en mode CBC
+Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParams);
+byte[] encryptedData = cipher.doFinal(plainText.getBytes());
+    </pre>
+    <p>En utilisant un IV unique pour chaque opération de chiffrement, vous assurez que les mêmes blocs de texte en clair produiront des blocs chiffrés différents, éliminant ainsi les motifs répétitifs dans le texte chiffré.</p>
+
+    <h3>Bonnes pratiques pour la gestion des clés et des IV</h3>
+    <p>Pour renforcer encore la sécurité, considérez les points suivants :</p>
+    <ul>
+      <li><strong>Utiliser des clés de chiffrement fortes</strong> : Générer des clés avec suffisamment d'entropie et une longueur appropriée (au moins 256 bits pour AES).</li>
+      <li><strong>Stocker les clés de manière sécurisée</strong> : Ne jamais stocker les clés en clair dans le code source ou dans des fichiers non sécurisés. Utiliser des coffres-forts de clés ou des HSM.</li>
+      <li><strong>Ne pas réutiliser les IV</strong> : Un IV ne doit jamais être réutilisé avec la même clé. Cela peut compromettre la sécurité du chiffrement.</li>
+      <li><strong>Authentifier les données chiffrées</strong> : Utiliser des modes qui offrent l'authentification, comme GCM, ou ajouter un code d'authentification de message (MAC).</li>
+    </ul>
+
+    <h3>Impact réglementaire et conformité</h3>
+    <p>L'utilisation de pratiques de chiffrement non sécurisées peut entraîner des conséquences légales et réglementaires :</p>
+    <ul>
+      <li><strong>Non-conformité au RGPD</strong> : En Europe, le RGPD exige la protection adéquate des données personnelles. Une violation peut entraîner des amendes substantielles.</li>
+      <li><strong>Violation de normes industrielles</strong> : Dans des secteurs comme la finance (PCI DSS) ou la santé (HIPAA), des normes strictes encadrent la sécurité des données.</li>
+      <li><strong>Atteinte à la réputation</strong> : Les incidents de sécurité peuvent nuire à la confiance des clients et des partenaires, affectant la position de l'entreprise sur le marché.</li>
+    </ul>
+
+    <h3>Conclusion</h3>
+    <p>La sécurité des données est un enjeu majeur pour toute organisation. En évitant les erreurs courantes, comme l'utilisation de l'algorithme AES en mode ECB, et en adoptant des pratiques cryptographiques robustes, vous protégez non seulement les informations sensibles, mais vous assurez également la conformité aux réglementations et renforcez la confiance envers votre entreprise.</p>
+  </div>
+
+  <script>
+    document.getElementById('toggleInfo').addEventListener('click', function() {
+      const info = document.getElementById('info');
+      info.style.display = info.style.display === 'none' ? 'block' : 'none';
+    });
+
+    document.getElementById('encrypt-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const plaintext = document.getElementById('plaintext').value;
+
+      // Simuler le chiffrement (sans utiliser de mode ECB vulnérable)
+      const resultDiv = document.getElementById('result');
+      if(plaintext.trim() === '') {
+        resultDiv.innerHTML = '<span style="color: red;">Veuillez entrer des données à chiffrer.</span>';
+      } else {
+        // Simuler le chiffrement en affichant un texte chiffré factice
+        const simulatedCiphertext = 'U2FsdGVkX1' + btoa(plaintext).slice(0, 20) + '...';
+        resultDiv.innerHTML = `<span style="color: green;">Données chiffrées (simulation) : ${simulatedCiphertext}</span>`;
+      }
+    });
+  </script>
+</body>
+</html>
+

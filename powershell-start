@@ -1,0 +1,190 @@
+# Vérifier que les commandes nécessaires sont disponibles
+if (-not (Get-Command docker-compose -ErrorAction SilentlyContinue)) {
+    Write-Error "Erreur : 'docker-compose' n'est pas installé. Veuillez l'installer."
+    exit 1
+}
+
+if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+    Write-Error "Erreur : 'python' n'est pas installé. Veuillez l'installer."
+    exit 1
+}
+
+# Définir les chemins des fichiers templates et de sortie
+$TEMPLATE_COMPOSE_FILE = "./docker-compose.template.yml"
+$OUTPUT_COMPOSE_FILE = "docker-compose.yml"
+$TEMPLATE_INDEX_FILE = "./index.template.html"
+$OUTPUT_INDEX_FILE = "index.html"
+
+# Vérifier que les fichiers templates existent avant de continuer
+if (-not (Test-Path $TEMPLATE_COMPOSE_FILE)) {
+    Write-Error "Erreur : Le fichier template $TEMPLATE_COMPOSE_FILE est introuvable."
+    exit 1
+}
+
+if (-not (Test-Path $TEMPLATE_INDEX_FILE)) {
+    Write-Error "Erreur : Le fichier template $TEMPLATE_INDEX_FILE est introuvable."
+    exit 1
+}
+
+$START_PORT = 3000
+$SERVICES = ""
+$VULNERABILITIES_DATA = "const vulnerabilities = ["
+$VALID_SERVICE_FOUND = $false
+
+# Fonction pour trouver les répertoires contenant 'app-info.json'
+function Find-AppDirs {
+    Get-ChildItem -Path . -Recurse -Filter "app-info.json"
+}
+
+# Fonction pour vérifier si un port est disponible
+function Is-PortAvailable {
+    param(
+        [int]$port
+    )
+    $tcpConnections = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
+    if ($tcpConnections) {
+        return $false  # Le port est occupé
+    } else {
+        return $true   # Le port est disponible
+    }
+}
+
+# Fonction pour trouver le prochain port disponible à partir de START_PORT
+function Find-NextAvailablePort {
+    $port = $START_PORT
+    while (-not (Is-PortAvailable -port $port)) {
+        $port += 1
+    }
+    return $port
+}
+
+# Compteur de fichiers
+$file_count = 0
+
+# Traitement de chaque fichier 'app-info.json'
+$appInfoFiles = Find-AppDirs
+foreach ($app_info_file in $appInfoFiles) {
+    $file_count += 1
+    $APP_DIR = Split-Path $app_info_file.FullName -Parent
+    $APP_NAME = Split-Path $APP_DIR -Leaf
+    $CATEGORY_DIR = Split-Path $APP_DIR -Parent
+    $CATEGORY_NAME = Split-Path $CATEGORY_DIR -Leaf
+
+    # Vérifier si le fichier app-info.json est vide ou malformé
+    if ((Get-Item $app_info_file.FullName).Length -eq 0) {
+        Write-Warning "Le fichier app-info.json est vide dans $APP_DIR. L'application $APP_NAME sera ignorée."
+        continue
+    }
+
+    # Lire les informations depuis le fichier app-info.json et vérifier la validité JSON
+    try {
+        $appInfo = Get-Content $app_info_file.FullName | ConvertFrom-Json
+    } catch {
+        Write-Warning "Le fichier app-info.json est mal formé dans $APP_DIR. L'application $APP_NAME sera ignorée."
+        continue
+    }
+
+    if (-not $appInfo.title) {
+        Write-Warning "Titre manquant ou mal formé dans $APP_DIR/app-info.json. L'application $APP_NAME sera ignorée."
+        continue
+    }
+
+    if (-not $appInfo.description) {
+        Write-Warning "Description manquante ou mal formée dans $APP_DIR/app-info.json. L'application $APP_NAME sera ignorée."
+        continue
+    }
+
+    if (-not $appInfo.category) {
+        Write-Warning "Catégorie manquante ou mal formée dans $APP_DIR/app-info.json. L'application $APP_NAME sera ignorée."
+        continue
+    }
+
+    # Vérifier si un Dockerfile est présent et non vide dans le dossier de l'application
+    $dockerfilePath = Join-Path $APP_DIR "Dockerfile"
+    if (Test-Path $dockerfilePath) {
+        if ((Get-Item $dockerfilePath).Length -eq 0) {
+            Write-Warning "Dockerfile vide dans $APP_DIR. L'application $APP_NAME sera ignorée."
+            continue
+        }
+
+        # Trouver un port disponible pour l'application
+        $PORT = Find-NextAvailablePort
+
+        # Ajouter la configuration de service Docker pour cette application
+        $SERVICE_BLOCK = @"
+  $APP_NAME:
+    build:
+      context: $APP_DIR
+    ports:
+      - "$PORT:3000"
+"@
+
+        $SERVICES += $SERVICE_BLOCK
+        $VALID_SERVICE_FOUND = $true
+        Write-Host "Dockerfile trouvé pour $APP_NAME, port attribué : $PORT."
+    } else {
+        Write-Warning "Dockerfile manquant dans $APP_DIR. L'application $APP_NAME sera ignorée."
+        continue
+    }
+
+    # Ajouter l'entrée pour index.html
+    $INDEX_ENTRY = @"
+{
+    id: '$APP_NAME',
+    category: '$($appInfo.category)',
+    title: "$($appInfo.title)",
+    description: "$($appInfo.description)",
+    port: $PORT
+},
+"@
+
+    $VULNERABILITIES_DATA += $INDEX_ENTRY
+
+    $START_PORT = $PORT + 1
+}
+
+# Terminer le tableau JavaScript pour les données des vulnérabilités
+$VULNERABILITIES_DATA = $VULNERABILITIES_DATA.TrimEnd(",`n")
+$VULNERABILITIES_DATA += @"
+];
+"@
+
+# Génération de fichiers seulement si des services valides ont été trouvés
+if ($VALID_SERVICE_FOUND) {
+    # Créer des fichiers temporaires pour les services et les données de vulnérabilités
+    $servicesTmpFile = "services.tmp"
+    $vulnerabilitiesTmpFile = "vulnerabilities.tmp"
+    $SERVICES | Out-File -FilePath $servicesTmpFile -Encoding UTF8
+    $VULNERABILITIES_DATA | Out-File -FilePath $vulnerabilitiesTmpFile -Encoding UTF8
+
+    # Remplacer le placeholder {{SERVICES}} dans le template docker-compose
+    $dockerComposeTemplate = Get-Content $TEMPLATE_COMPOSE_FILE
+    $dockerComposeContent = $dockerComposeTemplate -replace "{{SERVICES}}", (Get-Content $servicesTmpFile -Raw)
+    $dockerComposeContent | Out-File -FilePath $OUTPUT_COMPOSE_FILE -Encoding UTF8
+    Write-Host "docker-compose.yml généré avec succès."
+
+    # Remplacer le placeholder {{VULNERABILITIES_DATA}} dans le template index.html
+    $indexTemplate = Get-Content $TEMPLATE_INDEX_FILE
+    $indexContent = $indexTemplate -replace "{{VULNERABILITIES_DATA}}", (Get-Content $vulnerabilitiesTmpFile -Raw)
+    $indexContent | Out-File -FilePath $OUTPUT_INDEX_FILE -Encoding UTF8
+    Write-Host "index.html généré avec succès."
+
+    # Supprimer les fichiers temporaires après utilisation
+    Remove-Item $servicesTmpFile, $vulnerabilitiesTmpFile
+
+    # Démarrer les conteneurs avec Docker Compose
+    docker-compose up -d --build
+    Write-Host "Les conteneurs Docker ont été démarrés avec succès."
+
+    # Démarrer un serveur web pour servir index.html sur un port élevé (non root)
+    $PORT = 8000
+    Write-Host "Démarrage du serveur web pour servir index.html sur le port $PORT..."
+    $CurrentDir = Get-Location
+    cd $CurrentDir
+
+    # Démarrer le serveur web
+    Start-Process -NoNewWindow -FilePath "python" -ArgumentList "-m", "http.server", "$PORT"
+    Write-Host "Accédez à la page d'index via http://localhost:$PORT/index.html"
+} else {
+    Write-Host "Aucun service valide trouvé (aucun Dockerfile détecté ou les Dockerfiles étaient vides, ou les app-info.json étaient absents, vides ou mal formés). Aucun fichier docker-compose.yml généré."
+}

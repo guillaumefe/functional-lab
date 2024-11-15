@@ -1,0 +1,62 @@
+services:
+
+  a4:
+    build:
+      context: ./A4
+    ports:
+      - "3011:3000"
+    
+  a3:
+    build:
+      context: ./A3
+    ports:
+      - "3012:3000"
+    
+  a2:
+    build:
+      context: ./A2
+    ports:
+      - "3013:3000"
+    
+  a5:
+    build:
+      context: ./A5
+    ports:
+      - "3014:3000"
+    
+  a10:
+    build:
+      context: ./A10
+    ports:
+      - "3015:3000"
+    
+  a7:
+    build:
+      context: ./A7
+    ports:
+      - "3016:3000"
+    
+  a9:
+    build:
+      context: ./A9
+    ports:
+      - "3017:3000"
+    
+  a8:
+    build:
+      context: ./A8
+    ports:
+      - "3018:3000"
+    
+  a6:
+    build:
+      context: ./A6
+    ports:
+      - "3019:3000"
+    
+  a1:
+    build:
+      context: ./A1
+    ports:
+      - "3020:3000"
+    
