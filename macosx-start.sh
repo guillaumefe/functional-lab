@@ -74,11 +74,6 @@ while IFS= read -r app_info_file; do
         continue
     fi
 
-    if ! CATEGORY=$(jq -r '.category' "${app_info_file}" 2>/dev/null) || [ -z "$CATEGORY" ] || [ "$CATEGORY" = "null" ]; then
-        echo "Avertissement: Catégorie manquante ou mal formée dans ${APP_DIR}/app-info.json. L'application ${APP_NAME} sera ignorée."
-        continue
-    fi
-
     # Vérifier si un Dockerfile est présent et non vide dans le dossier de l'application
     if [ -f "${APP_DIR}/Dockerfile" ]; then
         if [ ! -s "${APP_DIR}/Dockerfile" ]; then
